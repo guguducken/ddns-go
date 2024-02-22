@@ -1,0 +1,12 @@
+ip-check-urls:
+  - type: ipinfo.io
+    url: https://ipinfo.io/ip
+    token: ""
+  - type: httpbin
+    url: https://httpbin.org/get
+    token: ""
+check-interval: 10
+providers:
+  - name: tencent
+    domains:
+      - test.guguducken.io
