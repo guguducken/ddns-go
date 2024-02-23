@@ -1,0 +1,6 @@
+github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cam v1.0.861 h1:lZsAyWCGTE3wH/wTR2yOJI0Uvo5PiRvxsj+NOr78Ft8=
+github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cam v1.0.861/go.mod h1:M1KSnrf1VE+qTqo6Xs+Pv39PE3ou3HepISv5ij6YEfc=
+github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.861 h1:XcWI1f7ZB9oUkSfW6FFadwdDAK4OJbTKJsraoMIfp8g=
+github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.861/go.mod h1:r5r4xbfxSaeR04b166HGsBa/R4U3SueirEUpXGuw+Q0=
+github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/dnspod v1.0.861 h1:Q5X95fn9bzjn5VSzVTb/CZPDk18IntUXpXRjtHPlr9Q=
+github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/dnspod v1.0.861/go.mod h1:oxSnN6oftZEI+tasTl2Z+nRg/l6pYl3sGsJVS1981Jk=
