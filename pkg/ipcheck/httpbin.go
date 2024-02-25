@@ -43,7 +43,7 @@ func (h Httpbin) GetIPWithContext(ctx context.Context) (ip string, err error) {
 		return "", err
 	}
 
-	req.Header.Set("accept", "application/json")
+	req.Header.Set("Accept", "application/json")
 
 	if token != "" {
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))

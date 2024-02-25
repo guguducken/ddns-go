@@ -5,19 +5,28 @@ import (
 )
 
 const (
-	DNSPodProvider = "DNSPod"
+	DNSPodProvider = "dnsPod"
+	AliDNSProvider = "aliDNS"
 )
 
 var (
-	ErrNoDNSRecord       = errors.New("no such dns record")
-	ErrPermissionInvalid = errors.New("user permission is invalid")
+	AllowedProviderTypes = map[string]string{
+		DNSPodProvider: DNSPodProvider,
+		AliDNSProvider: AliDNSProvider,
+	}
+)
+
+var (
+	ErrUnsupportedProvider = errors.New("unsupported dns provider")
+	ErrNoDNSRecord         = errors.New("no such dns record")
+	ErrPermissionInvalid   = errors.New("user permission is invalid")
 )
 
 type DNSProvider interface {
 	GetType() string
 	CheckPermission() error
 	GetDNSRecord(domain string, subDomain string) (DNSRecord, error)
-	ListDNSRecords(domian string) (DNSRecords, error)
+	ListDNSRecords(domain string) (DNSRecords, error)
 	CreateDNSRecord(record DNSRecord) error
 	UpdateDNSRecord(record DNSRecord) error
 	DeleteDNSRecord(record DNSRecord) error

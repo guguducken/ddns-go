@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	dnsPodAPIEndpoint     = "dnspod.tencentcloudapi.com"
+	dnsPodAPIEndpoint     = `dnspod.tencentcloudapi.com`
 	tencentCAMAPIEndpoint = "cam.tencentcloudapi.com"
 )
 
@@ -23,8 +23,12 @@ type DNSPod struct {
 	credential *tcommon.Credential
 }
 
-func NewDNSPodProvider(accessKey string, secretKey string) DNSPod {
-	return DNSPod{
+// NewDNSPodProvider will return nil pointer if accessKey is empty or secretKey is empty
+func NewDNSPodProvider(accessKey string, secretKey string) *DNSPod {
+	if accessKey == "" || secretKey == "" {
+		return nil
+	}
+	return &DNSPod{
 		accessKey:  accessKey,
 		secretKey:  secretKey,
 		credential: tcommon.NewCredential(accessKey, secretKey),
@@ -34,12 +38,16 @@ func NewDNSPodProvider(accessKey string, secretKey string) DNSPod {
 func (d DNSPod) NewDNSPodClient() (*dnspod.Client, error) {
 	cpf := profile.NewClientProfile()
 	cpf.HttpProfile.Endpoint = dnsPodAPIEndpoint
+	cpf.NetworkFailureMaxRetries = 10
+	cpf.UnsafeRetryOnConnectionFailure = true
 	return dnspod.NewClient(d.credential, "", cpf)
 }
 
 func (d DNSPod) NewTencentCAMClient() (*tcam.Client, error) {
 	cpf := profile.NewClientProfile()
-	cpf.HttpProfile.Endpoint = dnsPodAPIEndpoint
+	cpf.HttpProfile.Endpoint = tencentCAMAPIEndpoint
+	cpf.NetworkFailureMaxRetries = 10
+	cpf.UnsafeRetryOnConnectionFailure = true
 	return tcam.NewClient(d.credential, "", cpf)
 }
 
@@ -52,7 +60,7 @@ func (d DNSPod) CheckPermission() error {
 	if err != nil {
 		return err
 	}
-	allowedPermissions := []string{"AdministratorAccess", "QCloudResourceFullAccess", "QcloudDNSPodFullAccess"}
+	allowedPermissions := []string{"AdministratorAccess", "QCloudResourceFullAccess", "QcloudDNSPodFullAccess", "CustomerDNSPodFullAccess"}
 
 	request := tcam.NewListPoliciesGrantingServiceAccessRequest()
 	request.TargetUin = tcommon.Uint64Ptr(userUID)
@@ -69,7 +77,7 @@ func (d DNSPod) CheckPermission() error {
 			return false
 		}
 		for _, policy := range node.Policy {
-			if slices.Contains(allowedPermissions, *policy.PolicyType) {
+			if slices.Contains(allowedPermissions, *policy.PolicyName) {
 				return true
 			}
 		}
@@ -120,8 +128,29 @@ func (d DNSPod) GetDNSRecord(domain string, subDomain string) (DNSRecord, error)
 func (d DNSPod) ListDNSRecords(domain string) (DNSRecords, error) {
 	records := make(DNSRecords, 0, 30)
 
+	var offset, limit uint64 = 0, 200
+	for {
+		recordsTemp, err := d.listDNSRecordByPage(domain, offset, limit)
+		if err != nil {
+			return nil, err
+		}
+		records = append(records, recordsTemp...)
+		offset += limit
+		if len(recordsTemp) < int(limit) {
+			break
+		}
+	}
+
+	return records, nil
+}
+
+func (d DNSPod) listDNSRecordByPage(domain string, offset uint64, limit uint64) (DNSRecords, error) {
+	records := make(DNSRecords, 0, 30)
+
 	request := dnspod.NewDescribeRecordListRequest()
 	request.Domain = tcommon.StringPtr(domain)
+	request.Offset = tcommon.Uint64Ptr(offset)
+	request.Limit = tcommon.Uint64Ptr(limit)
 
 	client, err := d.NewDNSPodClient()
 	if err != nil {
@@ -132,6 +161,7 @@ func (d DNSPod) ListDNSRecords(domain string) (DNSRecords, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	for _, item := range response.Response.RecordList {
 		records = append(records, d.ParseToDNSRecord(item))
 	}

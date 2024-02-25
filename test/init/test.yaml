@@ -1,4 +1,4 @@
-ip-check-urls:
+ip_getters:
   - type: "ipinfo.io"
     url: "https://ipinfo.io/ip"
     token: ""
@@ -9,7 +9,7 @@ ip-check-urls:
     url: "https://ifconfig.me/ip"
 check-interval: 10
 providers:
-  - name: tencent
+  - type: tencent
     access-key: ""
     secret-key: ""
     domains:
