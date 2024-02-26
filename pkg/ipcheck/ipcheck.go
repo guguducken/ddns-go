@@ -7,12 +7,14 @@ import (
 )
 
 var (
-	ErrAllCheckerFailed = errors.New("all ip check provider response fail")
+	ErrAllGetterFailed     = errors.New("all ip getter response fail")
+	ErrUnsupportedIPGetter = errors.New("unsupported ipp getter")
+	ErrInvalidResponseIP   = errors.New("ip getter response an invalid ip")
 )
 
 const (
-	HttpbinGetter = "HttpBin"
-	IpInfoIO      = "IPInfo"
+	HttpbinGetter = "httpbin"
+	IpInfoGetter  = "ipinfo"
 )
 
 type IPGetter interface {
@@ -38,7 +40,7 @@ func (i IPGetters) GetIPWithContext(ctx context.Context) (ip string, err error) 
 		}
 		return ip, err
 	}
-	return "", ErrAllCheckerFailed
+	return "", ErrAllGetterFailed
 }
 
 type SimpleChecker struct {

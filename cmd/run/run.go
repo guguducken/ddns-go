@@ -1,7 +1,14 @@
 package run
 
 import (
+	"errors"
+	"fmt"
+	"net"
+
+	"github.com/guguducken/ddns-go/pkg/config"
 	derrors "github.com/guguducken/ddns-go/pkg/errors"
+	"github.com/guguducken/ddns-go/pkg/ipcheck"
+	"github.com/guguducken/ddns-go/pkg/log"
 	"github.com/spf13/cobra"
 )
 
@@ -22,5 +29,26 @@ func InitRunCommand() *cobra.Command {
 }
 
 func run(configPath string) error {
+	cfg, err := config.NewConfig(configPath)
+	if err != nil {
+		return err
+	}
+	log.Info("config init success")
+
+	// get ip
+	log.Info("start get ip")
+	ip, err := cfg.IPGetters.GetIP()
+	if err != nil {
+		return err
+	}
+
+	if ip == "" {
+		return ipcheck.ErrAllGetterFailed
+	}
+	if net.ParseIP(ip) == nil {
+		return errors.Join(ipcheck.ErrInvalidResponseIP, errors.New(fmt.Sprintf("response ip is %s", ip)))
+	}
+	log.Info(fmt.Sprintf("get ip success, ip is: %s", ip))
+
 	return nil
 }

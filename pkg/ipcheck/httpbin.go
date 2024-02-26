@@ -20,8 +20,8 @@ type HttpBinGetResponse struct {
 	URL     string            `json:"url"`
 }
 
-func NewHttpbinGetter(url string, token string) Httpbin {
-	return Httpbin{
+func NewHttpbinGetter(url string, token string) *Httpbin {
+	return &Httpbin{
 		SimpleChecker{
 			Type:  HttpbinGetter,
 			URL:   url,
@@ -30,11 +30,11 @@ func NewHttpbinGetter(url string, token string) Httpbin {
 	}
 }
 
-func (h Httpbin) GetIP() (ip string, err error) {
+func (h *Httpbin) GetIP() (ip string, err error) {
 	return h.GetIPWithContext(context.Background())
 }
 
-func (h Httpbin) GetIPWithContext(ctx context.Context) (ip string, err error) {
+func (h *Httpbin) GetIPWithContext(ctx context.Context) (ip string, err error) {
 	url := h.GetURL()
 	token := h.GetToken()
 

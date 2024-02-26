@@ -12,21 +12,21 @@ type IPInfo struct {
 	SimpleChecker
 }
 
-func NewIPInfoGetter(url string, token string) IPInfo {
-	return IPInfo{
+func NewIPInfoGetter(url string, token string) *IPInfo {
+	return &IPInfo{
 		SimpleChecker{
-			Type:  IpInfoIO,
+			Type:  IpInfoGetter,
 			URL:   url,
 			Token: token,
 		},
 	}
 }
 
-func (i IPInfo) GetIP() (ip string, err error) {
+func (i *IPInfo) GetIP() (ip string, err error) {
 	return i.GetIPWithContext(context.Background())
 }
 
-func (i IPInfo) GetIPWithContext(ctx context.Context) (ip string, err error) {
+func (i *IPInfo) GetIPWithContext(ctx context.Context) (ip string, err error) {
 	url := i.GetURL()
 	token := i.GetToken()
 

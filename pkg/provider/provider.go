@@ -5,8 +5,8 @@ import (
 )
 
 const (
-	DNSPodProvider = "dnsPod"
-	AliDNSProvider = "aliDNS"
+	DNSPodProvider = "dnspod"
+	AliDNSProvider = "alidns"
 )
 
 var (

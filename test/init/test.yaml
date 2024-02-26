@@ -1,15 +1,16 @@
+log_level: info
 ip_getters:
-  - type: "ipinfo.io"
+  - type: "ipinfo"
     url: "https://ipinfo.io/ip"
     token: ""
   - type: "httpbin"
     url: "https://httpbin.org/get"
     token: ""
-  - type: "ipinfo.io"
+  - type: "ipinfo"
     url: "https://ifconfig.me/ip"
 check-interval: 10
 providers:
-  - type: tencent
+  - type: dnspod
     access-key: ""
     secret-key: ""
     domains:
