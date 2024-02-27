@@ -35,7 +35,7 @@ func (i IPGetters) GetIPWithContext(ctx context.Context) (ip string, err error) 
 	for _, getter := range i {
 		ip, err = getter.GetIPWithContext(ctx)
 		if err != nil {
-			fmt.Printf("the provider of ip checker is unaccessable: %s", getter.GetURL())
+			fmt.Printf("ip getter error: %s", getter.GetURL())
 			continue
 		}
 		return ip, err

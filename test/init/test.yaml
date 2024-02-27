@@ -8,7 +8,7 @@ ip_getters:
     token: ""
   - type: "ipinfo"
     url: "https://ifconfig.me/ip"
-check-interval: 10
+check_interval: 10
 providers:
   - type: dnspod
     access-key: ""

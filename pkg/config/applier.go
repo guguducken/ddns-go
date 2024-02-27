@@ -1,10 +1,24 @@
 package config
 
-import "github.com/guguducken/ddns-go/pkg/provider"
+import (
+	"errors"
+
+	"github.com/guguducken/ddns-go/pkg/provider"
+)
 
 type DNSApplier struct {
 	provider provider.DNSProvider
 	domains  map[string]struct{}
+}
+
+type DNSAppliers map[string]*DNSApplier
+
+var (
+	ErrAllApplierFailed = errors.New("all provider and all domains report error")
+)
+
+func (das DNSAppliers) Apply(ip string) []error {
+	return nil
 }
 
 func NewDNSApplier(provider provider.DNSProvider, domains []string) *DNSApplier {

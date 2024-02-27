@@ -6,7 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+
+	"github.com/rs/zerolog/log"
 )
 
 type Httpbin struct {
@@ -35,6 +38,7 @@ func (h *Httpbin) GetIP() (ip string, err error) {
 }
 
 func (h *Httpbin) GetIPWithContext(ctx context.Context) (ip string, err error) {
+	log.Debug().Str("ip_getter", HttpbinGetter).Msg("start get ip")
 	url := h.GetURL()
 	token := h.GetToken()
 
@@ -68,6 +72,10 @@ func (h *Httpbin) GetIPWithContext(ctx context.Context) (ip string, err error) {
 	err = json.Unmarshal(reply, &httpbinResp)
 	if err != nil {
 		return "", err
+	}
+
+	if net.ParseIP(httpbinResp.Origin) == nil {
+		return "", errors.Join(ErrInvalidResponseIP, errors.New(fmt.Sprintf("invalid ip is %s", httpbinResp.Origin)))
 	}
 
 	return httpbinResp.Origin, nil

@@ -5,7 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+
+	"github.com/rs/zerolog/log"
 )
 
 type IPInfo struct {
@@ -27,6 +30,7 @@ func (i *IPInfo) GetIP() (ip string, err error) {
 }
 
 func (i *IPInfo) GetIPWithContext(ctx context.Context) (ip string, err error) {
+	log.Debug().Str("ip_getter", IpInfoGetter).Msg("start get ip")
 	url := i.GetURL()
 	token := i.GetToken()
 
@@ -54,5 +58,10 @@ func (i *IPInfo) GetIPWithContext(ctx context.Context) (ip string, err error) {
 		return "", err
 	}
 
-	return string(reply), nil
+	ip = string(reply)
+	if net.ParseIP(ip) == nil {
+		return "", errors.Join(ErrInvalidResponseIP, errors.New(fmt.Sprintf("invalid ip is %s", ip)))
+	}
+
+	return ip, nil
 }

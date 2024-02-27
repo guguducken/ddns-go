@@ -1,15 +1,21 @@
 package run
 
 import (
-	"errors"
 	"fmt"
-	"net"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/guguducken/ddns-go/pkg/config"
+	"github.com/guguducken/ddns-go/pkg/ddns"
 	derrors "github.com/guguducken/ddns-go/pkg/errors"
-	"github.com/guguducken/ddns-go/pkg/ipcheck"
-	"github.com/guguducken/ddns-go/pkg/log"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+)
+
+const (
+	mostShutdownTime = 10 * time.Second
 )
 
 func InitRunCommand() *cobra.Command {
@@ -33,22 +39,35 @@ func run(configPath string) error {
 	if err != nil {
 		return err
 	}
-	log.Info("config init success")
+	log.Info().Msg("config init success")
 
-	// get ip
-	log.Info("start get ip")
-	ip, err := cfg.IPGetters.GetIP()
-	if err != nil {
-		return err
-	}
+	// run ddns client or ip getter server
+	stopper := ddns.Run(cfg)
 
-	if ip == "" {
-		return ipcheck.ErrAllGetterFailed
-	}
-	if net.ParseIP(ip) == nil {
-		return errors.Join(ipcheck.ErrInvalidResponseIP, errors.New(fmt.Sprintf("response ip is %s", ip)))
-	}
-	log.Info(fmt.Sprintf("get ip success, ip is: %s", ip))
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 
-	return nil
+	sig := <-signalChan
+	log.Warn().Msg("start shutdown")
+	log.Warn().Msg(fmt.Sprintf("shutdown signal is %s", sig.String()))
+
+	shutdownFinished := stopper.Stop()
+
+	log.Warn().Msg(fmt.Sprintf("most shutdown time is %s", mostShutdownTime.String()))
+	timer := time.NewTimer(mostShutdownTime)
+	defer timer.Stop()
+
+	for {
+		select {
+		case <-shutdownFinished:
+			log.Warn().Msg("shutdown finished")
+			return nil
+		case <-timer.C:
+			log.Error().Msg("maximum shutdown time exceeded")
+			return nil
+		case <-signalChan:
+			log.Error().Msg(fmt.Sprintf("receive signal again, will exit now"))
+			return nil
+		}
+	}
 }
