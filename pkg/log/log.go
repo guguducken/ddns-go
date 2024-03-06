@@ -17,7 +17,7 @@ const (
 )
 
 var (
-	zerologLevel zerolog.Level = zerolog.ErrorLevel
+	zerologLevel zerolog.Level = zerolog.WarnLevel
 	once         sync.Once
 )
 
@@ -43,7 +43,7 @@ func Init(logLevel string) {
 	case PanicLevel:
 		zerologLevel = zerolog.PanicLevel
 	default:
-		zerologLevel = zerolog.ErrorLevel
+		zerologLevel = zerolog.WarnLevel
 	}
 	once.Do(initLogger)
 }
