@@ -24,15 +24,17 @@ var (
 
 type DNSProvider interface {
 	GetType() string
+	InitDNSRecord(domain, subDomain, value string) DNSRecord
 	CheckPermission() error
 	GetDNSRecord(domain string, subDomain string) (DNSRecord, error)
 	ListDNSRecords(domain string) (DNSRecords, error)
-	CreateDNSRecord(record DNSRecord) error
-	UpdateDNSRecord(record DNSRecord) error
-	DeleteDNSRecord(record DNSRecord) error
+	CreateDNSRecord(domain string, record DNSRecord) error
+	UpdateDNSRecord(domain string, record DNSRecord) error
+	DeleteDNSRecord(domain string, record DNSRecord) error
 }
 
 type DNSRecord struct {
+	Domain     string
 	Name       string
 	Value      string
 	Type       string

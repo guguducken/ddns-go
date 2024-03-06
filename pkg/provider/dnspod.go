@@ -121,7 +121,7 @@ func (d DNSPod) GetDNSRecord(domain string, subDomain string) (DNSRecord, error)
 
 	// we can get only one record
 	// parse to DNSRecord
-	record = d.ParseToDNSRecord(response.Response.RecordList[0])
+	record = d.ParseToDNSRecord(domain, response.Response.RecordList[0])
 	return record, nil
 }
 
@@ -163,26 +163,52 @@ func (d DNSPod) listDNSRecordByPage(domain string, offset uint64, limit uint64) 
 	}
 
 	for _, item := range response.Response.RecordList {
-		records = append(records, d.ParseToDNSRecord(item))
+		records = append(records, d.ParseToDNSRecord(domain, item))
 	}
 
 	return records, nil
 }
 
-func (d DNSPod) CreateDNSRecord(record DNSRecord) error {
+func (d DNSPod) CreateDNSRecord(domain string, record DNSRecord) error {
+	request := dnspod.NewCreateRecordRequest()
+	request.Domain = tcommon.StringPtr(domain)
+	request.RecordType = tcommon.StringPtr(CheckIPDNSType(record.Value))
+	request.RecordLine = tcommon.StringPtr(record.Line)
+	request.Value = tcommon.StringPtr(record.Value)
+	request.SubDomain = tcommon.StringPtr(record.Name)
+	request.TTL = tcommon.Uint64Ptr(record.TTL)
+	request.Weight = tcommon.Uint64Ptr(record.Weight)
+	request.Status = tcommon.StringPtr(record.Status)
+	request.Remark = tcommon.StringPtr(record.Remark)
+
+	client, err := d.NewDNSPodClient()
+	if err != nil {
+		return err
+	}
+	_, err = client.CreateRecord(request)
+	return err
+}
+
+func (d DNSPod) UpdateDNSRecord(domain string, record DNSRecord) error {
 	return nil
 }
 
-func (d DNSPod) UpdateDNSRecord(record DNSRecord) error {
+func (d DNSPod) DeleteDNSRecord(domain string, record DNSRecord) error {
 	return nil
 }
 
-func (d DNSPod) DeleteDNSRecord(record DNSRecord) error {
-	return nil
+func (d DNSPod) InitDNSRecord(domain, subDomain, value string) DNSRecord {
+	dr := DNSRecord{
+		Domain: domain,
+		Name:   subDomain,
+		Value:  value,
+	}
+	return dr
 }
 
-func (d DNSPod) ParseToDNSRecord(dnsPodRecord *dnspod.RecordListItem) DNSRecord {
+func (d DNSPod) ParseToDNSRecord(domain string, dnsPodRecord *dnspod.RecordListItem) DNSRecord {
 	return DNSRecord{
+		Domain:     domain,
 		Name:       *dnsPodRecord.Name,
 		Value:      *dnsPodRecord.Value,
 		Status:     *dnsPodRecord.Status,
