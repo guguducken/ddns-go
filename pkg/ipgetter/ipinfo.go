@@ -1,4 +1,4 @@
-package ipcheck
+package ipgetter
 
 import (
 	"context"

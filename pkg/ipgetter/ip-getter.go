@@ -1,9 +1,13 @@
-package ipcheck
+package ipgetter
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
+
+	"github.com/guguducken/ddns-go/pkg/config"
+	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -11,6 +15,8 @@ var (
 	ErrUnsupportedIPGetter = errors.New("unsupported ipp getter")
 	ErrInvalidResponseIP   = errors.New("ip getter response an invalid ip")
 )
+
+var once sync.Once
 
 const (
 	HttpbinGetter = "httpbin"
@@ -26,6 +32,30 @@ type IPGetter interface {
 }
 
 type IPGetters []IPGetter
+
+var ipGetters IPGetters
+
+func InitIPGetters(cfg *config.Config) IPGetters {
+	if ipGetters != nil {
+		return ipGetters
+	}
+	getters := make(IPGetters, 0, 10)
+	log.Debug().Msg("start init ip getters")
+	for _, getter := range cfg.IPGettersInput {
+		switch getter.Type {
+		case HttpbinGetter:
+			log.Debug().Msg(fmt.Sprintf("add one httpbin style ip_getter to config"))
+			getters = append(getters, NewHttpbinGetter(getter.URL, getter.Token))
+		case IpInfoGetter:
+			log.Debug().Msg(fmt.Sprintf("add one ipinfo style ip_getter to config"))
+			getters = append(getters, NewIPInfoGetter(getter.URL, getter.Token))
+		default:
+			log.Error().Err(errors.Join(ErrUnsupportedIPGetter, errors.New(fmt.Sprintf("invalid ip getter is: %s, so skip it", getter.Type))))
+		}
+	}
+	ipGetters = getters
+	return ipGetters
+}
 
 func (i IPGetters) GetIP() (ip string, err error) {
 	return i.GetIPWithContext(context.Background())

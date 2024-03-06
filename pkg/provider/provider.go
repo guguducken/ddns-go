@@ -48,3 +48,5 @@ type DNSRecord struct {
 }
 
 type DNSRecords []DNSRecord
+
+type DNSProviders []DNSProvider

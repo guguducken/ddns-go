@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/guguducken/ddns-go/pkg/config"
+	"github.com/guguducken/ddns-go/pkg/ipgetter"
 	"github.com/rs/zerolog/log"
 )
 
@@ -56,19 +57,19 @@ func (cs *ClientStopper) SetCancelFunc(cancel context.CancelFunc) {
 }
 
 func clientRoundRun(cfg *config.Config, t time.Time) error {
-	ip, err := cfg.IPGetters.GetIP()
+	ip, err := ipgetter.InitIPGetters(cfg).GetIP()
 	if err != nil {
 		return err
 	}
 	log.Info().Msgf("obtain ip success, the result is: %s", ip)
 
-	errs := cfg.DNSAppliers.Apply(ip)
-	// log errors if len(errs) != 0
-	if len(errs) != 0 {
-		log.Error().Errs("errors", errs).Msg("some applier report upgrade dns record to provider failed")
-	}
-	if len(errs) == cfg.GetTotalDomains() {
-		return config.ErrAllApplierFailed
-	}
+	// errs := cfg.DNSAppliers.Apply(ip)
+	// // log errors if len(errs) != 0
+	// if len(errs) != 0 {
+	// 	log.Error().Errs("errors", errs).Msg("some applier report upgrade dns record to provider failed")
+	// }
+	// if len(errs) == cfg.GetTotalDomains() {
+	// 	return config.ErrAllApplierFailed
+	// }
 	return nil
 }
