@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	dlog "github.com/guguducken/ddns-go/pkg/log"
 	"github.com/rs/zerolog/log"
@@ -17,6 +18,8 @@ var (
 
 const (
 	defaultCheckInterval int64 = 10
+
+	EnvInputPrefix = "ENV_"
 )
 
 type Config struct {
@@ -25,8 +28,6 @@ type Config struct {
 	Providers      []ProvidersConfig `yaml:"providers,omitempty" json:"providers,omitempty"`
 	LogLevel       string            `yaml:"log_level,omitempty" json:"log-level,omitempty"`
 	Type           string            `yaml:"type,omitempty" json:"type,omitempty"`
-
-	totalDomains int
 }
 
 type IPGettersConfig struct {
@@ -40,10 +41,6 @@ type ProvidersConfig struct {
 	AccessKey string     `yaml:"access_key,omitempty" json:"access-key,omitempty"`
 	SecretKey string     `yaml:"secret_key,omitempty" json:"secret-key,omitempty"`
 	Domains   DNSRecords `yaml:"domains,omitempty" json:"domains,omitempty"`
-}
-
-func (cfg *Config) GetTotalDomains() int {
-	return cfg.totalDomains
 }
 
 func NewConfig(path string) (*Config, error) {
@@ -81,25 +78,29 @@ func NewConfig(path string) (*Config, error) {
 		cfg.CheckInterval = defaultCheckInterval
 	}
 
-	// parse to dns applier
-	log.Debug().Msg("start init dns appliers")
-	for _, p := range cfg.Providers {
-
-		// check the number of p.domains
-		if len(p.Domains) == 0 {
-			log.Error().Err(errors.Join(ErrEmptyProviderDomains, errors.New(fmt.Sprintf("provider is %s", p.Type))))
-			continue
+	// validate the provider's domains
+	for _, pro := range cfg.Providers {
+		if err = pro.Domains.Validate(); err != nil {
+			return nil, err
 		}
-
-		// calculate total domains
-		cfg.totalDomains += len(p.Domains)
-
 	}
 
-	// must return err if no domains to create dns record
-	if cfg.totalDomains == 0 {
-		return nil, ErrEmptyProviderDomains
-	}
+	InitEnvInputs(&cfg)
 
 	return &cfg, nil
+}
+
+func InitEnvInputs(cfg *Config) {
+	// get provider config from env
+	for i := 0; i < len(cfg.Providers); i++ {
+		if strings.HasPrefix(cfg.Providers[i].Type, EnvInputPrefix) {
+			cfg.Providers[i].Type = MustGetEnv(cfg.Providers[i].Type[len(EnvInputPrefix):])
+		}
+		if strings.HasPrefix(cfg.Providers[i].AccessKey, EnvInputPrefix) {
+			cfg.Providers[i].AccessKey = MustGetEnv(cfg.Providers[i].AccessKey[len(EnvInputPrefix):])
+		}
+		if strings.HasPrefix(cfg.Providers[i].SecretKey, EnvInputPrefix) {
+			cfg.Providers[i].SecretKey = MustGetEnv(cfg.Providers[i].SecretKey[len(EnvInputPrefix):])
+		}
+	}
 }

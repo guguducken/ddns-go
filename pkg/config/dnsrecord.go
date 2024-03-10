@@ -35,26 +35,20 @@ func (ds DNSRecords) Validate() error {
 func (d DNSRecord) Validate() error {
 	errTpl := "%s of dns record must not be empty"
 
-	if d.Type == "" {
-		return errors.New(fmt.Sprintf(errTpl, "type"))
-	}
+	// if d.Type == "" {
+	// 	return errors.New(fmt.Sprintf(errTpl, "type"))
+	// }
 	if d.Domain == "" {
 		return errors.New(fmt.Sprintf(errTpl, "domain"))
 	}
 	if d.SubDomain == "" {
 		return errors.New(fmt.Sprintf(errTpl, "subdomain"))
 	}
-	if d.Value == "" {
-		return errors.New(fmt.Sprintf(errTpl, "value"))
-	}
-	if d.Type == "" {
-		return errors.New(fmt.Sprintf(errTpl, "type"))
-	}
-	if d.Line == "" {
-		return errors.New(fmt.Sprintf(errTpl, "line"))
-	}
-	if d.TTL == 0 {
-		return errors.New(fmt.Sprintf(errTpl, "ttl"))
-	}
+	// if d.Line == "" {
+	// 	return errors.New(fmt.Sprintf(errTpl, "line"))
+	// }
+	// if d.TTL == 0 {
+	// 	return errors.New(fmt.Sprintf(errTpl, "ttl"))
+	// }
 	return nil
 }
