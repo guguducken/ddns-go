@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
-	"github.com/guguducken/ddns-go/pkg/ipcheck"
 	dlog "github.com/guguducken/ddns-go/pkg/log"
-	"github.com/guguducken/ddns-go/pkg/provider"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v3"
 )
@@ -19,6 +18,8 @@ var (
 
 const (
 	defaultCheckInterval int64 = 10
+
+	EnvInputPrefix = "ENV_"
 )
 
 type Config struct {
@@ -27,11 +28,6 @@ type Config struct {
 	Providers      []ProvidersConfig `yaml:"providers,omitempty" json:"providers,omitempty"`
 	LogLevel       string            `yaml:"log_level,omitempty" json:"log-level,omitempty"`
 	Type           string            `yaml:"type,omitempty" json:"type,omitempty"`
-
-	IPGetters   ipcheck.IPGetters
-	DNSAppliers DNSAppliers
-
-	totalDomains int
 }
 
 type IPGettersConfig struct {
@@ -41,23 +37,10 @@ type IPGettersConfig struct {
 }
 
 type ProvidersConfig struct {
-	Type      string   `yaml:"type,omitempty" json:"type,omitempty"`
-	AccessKey string   `yaml:"access_key,omitempty" json:"access-key,omitempty"`
-	SecretKey string   `yaml:"secret_key,omitempty" json:"secret-key,omitempty"`
-	Domains   []string `yaml:"domains,omitempty" json:"domains,omitempty"`
-}
-
-func (cfg *Config) AddApplier(applierType string, provider provider.DNSProvider, domains []string) {
-	if _, ok := cfg.DNSAppliers[applierType]; !ok {
-		cfg.DNSAppliers[applierType] = NewDNSApplier(provider, domains)
-		return
-	}
-
-	cfg.DNSAppliers[applierType].AddDomains(domains)
-}
-
-func (cfg *Config) GetTotalDomains() int {
-	return cfg.totalDomains
+	Type      string     `yaml:"type,omitempty" json:"type,omitempty"`
+	AccessKey string     `yaml:"access_key,omitempty" json:"access-key,omitempty"`
+	SecretKey string     `yaml:"secret_key,omitempty" json:"secret-key,omitempty"`
+	Domains   DNSRecords `yaml:"domains,omitempty" json:"domains,omitempty"`
 }
 
 func NewConfig(path string) (*Config, error) {
@@ -95,51 +78,29 @@ func NewConfig(path string) (*Config, error) {
 		cfg.CheckInterval = defaultCheckInterval
 	}
 
-	// parse to dns applier
-	log.Debug().Msg("start init dns appliers")
-	cfg.DNSAppliers = make(map[string]*DNSApplier, 20)
-	for _, p := range cfg.Providers {
-
-		// check the number of p.domains
-		if len(p.Domains) == 0 {
-			log.Error().Err(errors.Join(ErrEmptyProviderDomains, errors.New(fmt.Sprintf("provider is %s", p.Type))))
-			continue
-		}
-
-		// calculate total domains
-		cfg.totalDomains += len(p.Domains)
-
-		switch p.Type {
-		case provider.DNSPodProvider:
-			log.Debug().Msg(fmt.Sprintf("add one dnspod applier to config"))
-			cfg.AddApplier(provider.DNSPodProvider, provider.NewDNSPodProvider(p.AccessKey, p.SecretKey), p.Domains)
-		default:
-			err = errors.Join(provider.ErrUnsupportedProvider, errors.New(fmt.Sprintf("invalid dns provider is: %s", p.Type)))
+	// validate the provider's domains
+	for _, pro := range cfg.Providers {
+		if err = pro.Domains.Validate(); err != nil {
 			return nil, err
 		}
 	}
 
-	// parse ip_getters input to ipcheck.IPGetters
-	log.Debug().Msg("start init ip getters")
-	cfg.IPGetters = make(ipcheck.IPGetters, 0, 10)
-	for _, getter := range cfg.IPGettersInput {
-		switch getter.Type {
-		case ipcheck.HttpbinGetter:
-			log.Debug().Msg(fmt.Sprintf("add one httpbin style ip_getter to config"))
-			cfg.IPGetters = append(cfg.IPGetters, ipcheck.NewHttpbinGetter(getter.URL, getter.Token))
-		case ipcheck.IpInfoGetter:
-			log.Debug().Msg(fmt.Sprintf("add one ipinfo style ip_getter to config"))
-			cfg.IPGetters = append(cfg.IPGetters, ipcheck.NewIPInfoGetter(getter.URL, getter.Token))
-		default:
-			err = errors.Join(ipcheck.ErrUnsupportedIPGetter, errors.New(fmt.Sprintf("invalid ip getter is: %s", getter.Type)))
-			return nil, err
-		}
-	}
-
-	// must return err if no domains to create dns record
-	if cfg.totalDomains == 0 {
-		return nil, ErrEmptyProviderDomains
-	}
+	InitEnvInputs(&cfg)
 
 	return &cfg, nil
+}
+
+func InitEnvInputs(cfg *Config) {
+	// get provider config from env
+	for i := 0; i < len(cfg.Providers); i++ {
+		if strings.HasPrefix(cfg.Providers[i].Type, EnvInputPrefix) {
+			cfg.Providers[i].Type = MustGetEnv(cfg.Providers[i].Type[len(EnvInputPrefix):])
+		}
+		if strings.HasPrefix(cfg.Providers[i].AccessKey, EnvInputPrefix) {
+			cfg.Providers[i].AccessKey = MustGetEnv(cfg.Providers[i].AccessKey[len(EnvInputPrefix):])
+		}
+		if strings.HasPrefix(cfg.Providers[i].SecretKey, EnvInputPrefix) {
+			cfg.Providers[i].SecretKey = MustGetEnv(cfg.Providers[i].SecretKey[len(EnvInputPrefix):])
+		}
+	}
 }

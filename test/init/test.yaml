@@ -11,7 +11,10 @@ ip_getters:
 check_interval: 10
 providers:
   - type: dnspod
-    access-key: ""
-    secret-key: ""
+    access_key: "ENV_TENCENTCLOUD_SECRET_ID"
+    secret_key: "ENV_TENCENTCLOUD_SECRET_KEY"
     domains:
-      - "test.guguducken.io"
+      - sub_domain: test
+        domain: 1matrix.org
+        ttl: 600
+        weight: 50

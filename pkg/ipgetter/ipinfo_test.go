@@ -1,12 +1,12 @@
-package ipcheck
+package ipgetter
 
 import (
 	"fmt"
 	"testing"
 )
 
-func TestHttpbin_GetIP(t *testing.T) {
-	ipGetter := NewHttpbinGetter("https://httpbin.org/get?test=1", "")
+func TestIPInfo_GetIP(t *testing.T) {
+	ipGetter := NewIPInfoGetter("https://ipinfo.io/ip", "")
 	ip, err := ipGetter.GetIP()
 	if err != nil {
 		panic(err)
