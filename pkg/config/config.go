@@ -36,10 +36,10 @@ type IPGettersConfig struct {
 }
 
 type ProvidersConfig struct {
-	Type      string   `yaml:"type,omitempty" json:"type,omitempty"`
-	AccessKey string   `yaml:"access_key,omitempty" json:"access-key,omitempty"`
-	SecretKey string   `yaml:"secret_key,omitempty" json:"secret-key,omitempty"`
-	Domains   []string `yaml:"domains,omitempty" json:"domains,omitempty"`
+	Type      string     `yaml:"type,omitempty" json:"type,omitempty"`
+	AccessKey string     `yaml:"access_key,omitempty" json:"access-key,omitempty"`
+	SecretKey string     `yaml:"secret_key,omitempty" json:"secret-key,omitempty"`
+	Domains   DNSRecords `yaml:"domains,omitempty" json:"domains,omitempty"`
 }
 
 func (cfg *Config) GetTotalDomains() int {

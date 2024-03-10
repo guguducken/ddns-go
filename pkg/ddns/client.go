@@ -26,10 +26,6 @@ func runClient(ctx context.Context, cfg *config.Config) Stopper {
 				}
 			case <-ctx.Done():
 				// TODO: some stop work
-				for i := 0; i < 20; i++ {
-					log.Info().Int("times", i).Msg("simulate stop some work")
-					time.Sleep(1 * time.Second)
-				}
 				finishedChan <- struct{}{}
 				return
 			}
@@ -63,13 +59,7 @@ func clientRoundRun(cfg *config.Config, t time.Time) error {
 	}
 	log.Info().Msgf("obtain ip success, the result is: %s", ip)
 
-	// errs := cfg.DNSAppliers.Apply(ip)
-	// // log errors if len(errs) != 0
-	// if len(errs) != 0 {
-	// 	log.Error().Errs("errors", errs).Msg("some applier report upgrade dns record to provider failed")
-	// }
-	// if len(errs) == cfg.GetTotalDomains() {
-	// 	return config.ErrAllApplierFailed
-	// }
+	//providers := provider.InitDNSProviders(cfg)
+
 	return nil
 }

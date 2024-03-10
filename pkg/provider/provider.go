@@ -2,6 +2,9 @@ package provider
 
 import (
 	"errors"
+
+	"github.com/guguducken/ddns-go/pkg/config"
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -24,29 +27,32 @@ var (
 
 type DNSProvider interface {
 	GetType() string
-	InitDNSRecord(domain, subDomain, value string) DNSRecord
 	CheckPermission() error
-	GetDNSRecord(domain string, subDomain string) (DNSRecord, error)
-	ListDNSRecords(domain string) (DNSRecords, error)
-	CreateDNSRecord(domain string, record DNSRecord) error
-	UpdateDNSRecord(domain string, record DNSRecord) error
-	DeleteDNSRecord(domain string, record DNSRecord) error
+	GetDNSRecord(domain string, subDomain string) (config.DNSRecord, error)
+	ListDNSRecords(domain string) (config.DNSRecords, error)
+	CreateDNSRecord(record config.DNSRecord) error
+	UpdateDNSRecord(record config.DNSRecord) error
+	DeleteDNSRecord(record config.DNSRecord) error
 }
-
-type DNSRecord struct {
-	Domain     string
-	Name       string
-	Value      string
-	Type       string
-	Status     string
-	Line       string
-	Weight     uint64
-	Remark     string
-	TTL        uint64
-	MX         uint64
-	UpdateTime string
-}
-
-type DNSRecords []DNSRecord
 
 type DNSProviders []DNSProvider
+
+var dnsProviders DNSProviders
+
+func InitDNSProviders(cfg *config.Config) DNSProviders {
+	if dnsProviders != nil {
+		return dnsProviders
+	}
+	providers := make(DNSProviders, 0, 10)
+	for i := 0; i < len(cfg.Providers); i++ {
+		provider := cfg.Providers[i]
+		switch provider.Type {
+		case DNSPodProvider:
+			providers = append(providers, NewDNSPodProvider(provider.AccessKey, provider.SecretKey))
+		default:
+			log.Error().Err(ErrUnsupportedProvider)
+		}
+	}
+	dnsProviders = providers
+	return dnsProviders
+}

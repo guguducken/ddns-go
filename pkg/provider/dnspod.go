@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strconv"
 
+	"github.com/guguducken/ddns-go/pkg/config"
 	tcam "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cam/v20190116"
 	tcommon "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
@@ -35,7 +36,7 @@ func NewDNSPodProvider(accessKey string, secretKey string) *DNSPod {
 	}
 }
 
-func (d DNSPod) NewDNSPodClient() (*dnspod.Client, error) {
+func (d *DNSPod) NewDNSPodClient() (*dnspod.Client, error) {
 	cpf := profile.NewClientProfile()
 	cpf.HttpProfile.Endpoint = dnsPodAPIEndpoint
 	cpf.NetworkFailureMaxRetries = 10
@@ -43,7 +44,7 @@ func (d DNSPod) NewDNSPodClient() (*dnspod.Client, error) {
 	return dnspod.NewClient(d.credential, "", cpf)
 }
 
-func (d DNSPod) NewTencentCAMClient() (*tcam.Client, error) {
+func (d *DNSPod) NewTencentCAMClient() (*tcam.Client, error) {
 	cpf := profile.NewClientProfile()
 	cpf.HttpProfile.Endpoint = tencentCAMAPIEndpoint
 	cpf.NetworkFailureMaxRetries = 10
@@ -51,11 +52,11 @@ func (d DNSPod) NewTencentCAMClient() (*tcam.Client, error) {
 	return tcam.NewClient(d.credential, "", cpf)
 }
 
-func (d DNSPod) GetType() string {
+func (d *DNSPod) GetType() string {
 	return DNSPodProvider
 }
 
-func (d DNSPod) CheckPermission() error {
+func (d *DNSPod) CheckPermission() error {
 	userUID, err := d.getUserUid()
 	if err != nil {
 		return err
@@ -92,8 +93,8 @@ func (d DNSPod) CheckPermission() error {
 	return ErrPermissionInvalid
 }
 
-func (d DNSPod) GetDNSRecord(domain string, subDomain string) (DNSRecord, error) {
-	var record DNSRecord
+func (d *DNSPod) GetDNSRecord(domain string, subDomain string) (config.DNSRecord, error) {
+	var record config.DNSRecord
 
 	// init new request
 	request := dnspod.NewDescribeRecordFilterListRequest()
@@ -125,8 +126,8 @@ func (d DNSPod) GetDNSRecord(domain string, subDomain string) (DNSRecord, error)
 	return record, nil
 }
 
-func (d DNSPod) ListDNSRecords(domain string) (DNSRecords, error) {
-	records := make(DNSRecords, 0, 30)
+func (d *DNSPod) ListDNSRecords(domain string) (config.DNSRecords, error) {
+	records := make(config.DNSRecords, 0, 30)
 
 	var offset, limit uint64 = 0, 200
 	for {
@@ -144,8 +145,8 @@ func (d DNSPod) ListDNSRecords(domain string) (DNSRecords, error) {
 	return records, nil
 }
 
-func (d DNSPod) listDNSRecordByPage(domain string, offset uint64, limit uint64) (DNSRecords, error) {
-	records := make(DNSRecords, 0, 30)
+func (d *DNSPod) listDNSRecordByPage(domain string, offset uint64, limit uint64) (config.DNSRecords, error) {
+	records := make(config.DNSRecords, 0, 30)
 
 	request := dnspod.NewDescribeRecordListRequest()
 	request.Domain = tcommon.StringPtr(domain)
@@ -169,13 +170,17 @@ func (d DNSPod) listDNSRecordByPage(domain string, offset uint64, limit uint64) 
 	return records, nil
 }
 
-func (d DNSPod) CreateDNSRecord(domain string, record DNSRecord) error {
+func (d *DNSPod) CreateDNSRecord(record config.DNSRecord) error {
+	if err := record.Validate(); err != nil {
+		return err
+	}
+
 	request := dnspod.NewCreateRecordRequest()
-	request.Domain = tcommon.StringPtr(domain)
+	request.Domain = tcommon.StringPtr(record.Domain)
 	request.RecordType = tcommon.StringPtr(CheckIPDNSType(record.Value))
 	request.RecordLine = tcommon.StringPtr(record.Line)
 	request.Value = tcommon.StringPtr(record.Value)
-	request.SubDomain = tcommon.StringPtr(record.Name)
+	request.SubDomain = tcommon.StringPtr(record.SubDomain)
 	request.TTL = tcommon.Uint64Ptr(record.TTL)
 	request.Weight = tcommon.Uint64Ptr(record.Weight)
 	request.Status = tcommon.StringPtr(record.Status)
@@ -189,27 +194,46 @@ func (d DNSPod) CreateDNSRecord(domain string, record DNSRecord) error {
 	return err
 }
 
-func (d DNSPod) UpdateDNSRecord(domain string, record DNSRecord) error {
-	return nil
-}
-
-func (d DNSPod) DeleteDNSRecord(domain string, record DNSRecord) error {
-	return nil
-}
-
-func (d DNSPod) InitDNSRecord(domain, subDomain, value string) DNSRecord {
-	dr := DNSRecord{
-		Domain: domain,
-		Name:   subDomain,
-		Value:  value,
+func (d *DNSPod) UpdateDNSRecord(record config.DNSRecord) error {
+	if err := record.Validate(); err != nil {
+		return err
 	}
-	return dr
+	dr, err := d.GetDNSRecord(record.Domain, record.SubDomain)
+	if err != nil {
+		return err
+	}
+
+	request := dnspod.NewModifyRecordRequest()
+	request.RecordId = tcommon.Uint64Ptr(dr.ID)
+
+	request.Domain = tcommon.StringPtr(record.Domain)
+	request.SubDomain = tcommon.StringPtr(record.SubDomain)
+	request.RecordType = tcommon.StringPtr(record.Type)
+	request.RecordLine = tcommon.StringPtr(record.Line)
+	request.Value = tcommon.StringPtr(record.Value)
+	request.TTL = tcommon.Uint64Ptr(record.TTL)
+
+	// init client
+	client, err := d.NewDNSPodClient()
+	if err != nil {
+		return err
+	}
+	_, err = client.ModifyRecord(request)
+	return err
 }
 
-func (d DNSPod) ParseToDNSRecord(domain string, dnsPodRecord *dnspod.RecordListItem) DNSRecord {
-	return DNSRecord{
+func (d *DNSPod) DeleteDNSRecord(record config.DNSRecord) error {
+	if err := record.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *DNSPod) ParseToDNSRecord(domain string, dnsPodRecord *dnspod.RecordListItem) config.DNSRecord {
+	return config.DNSRecord{
+		ID:         *dnsPodRecord.RecordId,
 		Domain:     domain,
-		Name:       *dnsPodRecord.Name,
+		SubDomain:  *dnsPodRecord.Name,
 		Value:      *dnsPodRecord.Value,
 		Status:     *dnsPodRecord.Status,
 		Type:       *dnsPodRecord.Type,
@@ -222,7 +246,7 @@ func (d DNSPod) ParseToDNSRecord(domain string, dnsPodRecord *dnspod.RecordListI
 	}
 }
 
-func (d DNSPod) getUserUid() (uint64, error) {
+func (d *DNSPod) getUserUid() (uint64, error) {
 	// get user uid
 	request := tcam.NewGetUserAppIdRequest()
 
