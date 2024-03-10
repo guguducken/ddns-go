@@ -7,7 +7,7 @@ build:
 
 .PHONY: clean
 clean:
-	@cd $(WORKDIR) && rm -rf ddns-go
+	@cd $(WORKDIR) && rm -rf ddns-go dist
 
 .PHONY: image
 image:
