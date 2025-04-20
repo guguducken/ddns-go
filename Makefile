@@ -1,14 +1,34 @@
 default: build
-WORKDIR:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+
+ROOT_DIR = $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+OUTPUT_PATH := $(ROOT_DIR)/bin
+BIN_NAME := ddns-go
+UNAME_S := $(shell uname -s)
+GOPATH := $(shell go env GOPATH)
+GO_VERSION=$(shell go version)
+GO_MODULE=$(shell go list -m)
+BRANCH_NAME=$(shell git rev-parse --abbrev-ref HEAD)
+LAST_COMMIT_ID=$(shell git rev-parse --short HEAD)
+BUILD_TIME=$(shell date -u "+%Y-%m-%dT%H:%M:%SZ")
+VERSION=$(shell git symbolic-ref -q --short HEAD || git describe --tags --exact-match)
+VERSION_INFO :=-X '$(GO_MODULE)/pkg/version.GoVersion=$(GO_VERSION)' -X '$(GO_MODULE)/pkg/version.BranchName=$(BRANCH_NAME)' \
+-X '$(GO_MODULE)/pkg/version.CommitID=$(LAST_COMMIT_ID)' -X '$(GO_MODULE)/pkg/version.BuildTime=$(BUILD_TIME)' \
+-X '$(GO_MODULE)/pkg/version.Version=$(VERSION)'
+
+GOLDFLAGS=-ldflags="$(VERSION_INFO)"
+
+.PHONY: config
+config:
+	@cd $(ROOT_DIR) && go mod tidy
 
 .PHONY: build
-build:
-	@cd $(WORKDIR) && go mod tidy && CGO_ENABLED=0 go build -o ddns-go main.go
+build: config
+	@CGO_ENABLED=0 go build $(GOLDFLAGS) -o $(OUTPUT_PATH)/$(BIN_NAME) ./cmd/ddns-go
 
 .PHONY: clean
 clean:
-	@cd $(WORKDIR) && rm -rf ddns-go dist
+	@rm -rf $(OUTPUT_PATH)
 
 .PHONY: image
 image:
-	@$(WORKDIR)/optools/image/build.sh
+	@$(ROOT_DIR)/optools/image/build.sh

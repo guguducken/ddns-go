@@ -1,0 +1,57 @@
+log_level: debug
+v4:
+  providers:
+    - type: plain
+      config:
+        request_url: https://4.ident.me
+        additional_params:
+          token: "aaaaa"
+    - type: json
+      config:
+        request_url: https://4.ident.me/json
+        path: ip
+  recorders:
+    - type: dnspod
+      config:
+        access_key: "ENV_ACCESS_KEY"
+        secret_key: "ENV_SECRET_KEY"
+        domains:
+          - domain: "example.com"
+            sub_domains:
+              - "test"
+              - "test2"
+    - type: dnspod
+      config:
+        access_key: "ENV_ACCESS_KEY"
+        secret_key: "ENV_SECRET_KEY"
+        domains:
+          - domain: "example.com"
+            sub_domains:
+              - "test"
+              - "test2"
+v6:
+  providers:
+    - type: plain
+      config:
+        request_url: https://6.ident.me
+    - type: json
+      config:
+        request_url: https://6.ident.me/json
+        path: ip
+  recorders:
+    - type: dnspod
+      config:
+        access_key: "ENV_ACCESS_KEY"
+        secret_key: "ENV_SECRET_KEY"
+        domains:
+          - domain: "example.com"
+            sub_domains:
+              - "test6"
+    - type: dnspod
+      config:
+        access_key: "ENV_ACCESS_KEY"
+        secret_key: "ENV_SECRET_KEY"
+        domains:
+          - domain: "example.com"
+            sub_domains:
+              - "test6"
