@@ -1,22 +1,44 @@
 package config
 
 import (
-	"github.com/guguducken/ddns-go/pkg/cons"
+	"os"
+
 	"gopkg.in/yaml.v3"
+
+	"github.com/guguducken/ddns-go/pkg/cons"
+	"github.com/guguducken/ddns-go/pkg/utils"
 )
 
-type Config struct {
-	V4 Providers `yaml:"v4"`
-	V6 Providers `yaml:"v6"`
+func LoadConfig(path string) (*Config, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	c := &Config{}
+	if err = yaml.Unmarshal(utils.UnsafeToByteSlice(utils.ParseEnv(string(data))), c); err != nil {
+		return nil, err
+	}
+	if c.CheckInterval == 0 {
+		c.CheckInterval = 10
+	}
+	return c, nil
 }
 
-type Providers struct {
+type Config struct {
+	V4 *Pairs `yaml:"v4"`
+	V6 *Pairs `yaml:"v6"`
+
+	CheckInterval int `yaml:"check_interval"`
+}
+
+type Pairs struct {
 	Providers []Provider `yaml:"providers"`
 	Recorders []Recorder `yaml:"recorders"`
 }
 
 type Provider struct {
 	Type   cons.ProviderType `yaml:"type"`
+	Name   string            `yaml:"name"`
 	Config yaml.Node         `yaml:"config"`
 }
 

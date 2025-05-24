@@ -5,8 +5,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/guguducken/ddns-go/pkg/utils/requestutils"
 	"gopkg.in/yaml.v3"
+
+	"github.com/guguducken/ddns-go/pkg/utils/requestutils"
 )
 
 type Config struct {
@@ -48,5 +49,6 @@ func (config *Config) init(node yaml.Node, isV4 bool) error {
 	for k, v := range config.AdditionalHeaders {
 		config.headers.Set(k, v)
 	}
+
 	return nil
 }

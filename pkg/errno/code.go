@@ -18,4 +18,6 @@ var (
 	ErrDomainNotUnique      = NewError("ErrDomainNotUnique", "Domain must be unique")
 	ErrUnknown              = NewError("ErrUnknown", "unknown error")
 	ErrCanNotProvideIP      = NewError("ErrCanNotProvideIP", "can not provide ip")
+	ErrNoConfiguredProvider = NewError("ErrNoConfiguredProvider", "no configured provider")
+	ErrNoConfiguredRecorder = NewError("ErrNoConfiguredRecorder", "no configured recorder")
 )

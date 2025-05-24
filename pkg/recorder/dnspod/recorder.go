@@ -5,15 +5,16 @@ import (
 	"errors"
 	"fmt"
 
+	dcommon "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
+	dprofile "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
+	dsdk "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/dnspod/v20210323"
+	"gopkg.in/yaml.v3"
+
 	"github.com/guguducken/ddns-go/pkg/cons"
 	"github.com/guguducken/ddns-go/pkg/errno"
 	"github.com/guguducken/ddns-go/pkg/utils"
 	"github.com/guguducken/ddns-go/pkg/utils/iputil"
 	"github.com/guguducken/ddns-go/pkg/utils/logutil"
-	dcommon "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
-	dprofile "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
-	dsdk "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/dnspod/v20210323"
-	"gopkg.in/yaml.v3"
 )
 
 type Recorder struct {

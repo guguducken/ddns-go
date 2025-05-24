@@ -2,11 +2,13 @@ package recorder
 
 import (
 	"context"
+	"errors"
+
+	"gopkg.in/yaml.v3"
 
 	"github.com/guguducken/ddns-go/pkg/cons"
 	"github.com/guguducken/ddns-go/pkg/errno"
 	"github.com/guguducken/ddns-go/pkg/recorder/dnspod"
-	"gopkg.in/yaml.v3"
 )
 
 type Recorder interface {
@@ -24,4 +26,26 @@ func NewRecorder(ctx context.Context, t cons.RecorderType, config yaml.Node) (Re
 		errno.ErrInvalidRecorderType,
 		errno.AppendAdditionalMessage("type", string(t)),
 	)
+}
+
+type Recorders []Recorder
+
+func (rs Recorders) ApplyValue(ctx context.Context, ip string) error {
+	errs := make([]error, 0, len(rs))
+	for _, r := range rs {
+		if err := r.ApplyValue(ctx, ip); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return errors.Join(errs...)
+}
+
+func (rs Recorders) Exit(ctx context.Context) error {
+	errs := make([]error, 0, len(rs))
+	for _, r := range rs {
+		if err := r.Exit(ctx); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return errors.Join(errs...)
 }

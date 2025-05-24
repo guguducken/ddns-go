@@ -5,16 +5,18 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/guguducken/ddns-go/pkg/utils"
 )
 
 func Usage() func() {
 	return func() {
 		command := filepath.Base(os.Args[0])
-		fmt.Fprintf(os.Stderr, "ddns-go is a library written in golang for managing DNS records of domain names and dynamic IP addresses.\n\n")
-		fmt.Fprintf(os.Stderr, "Usage: %s [Options]\n\n", command)
-		fmt.Fprintf(os.Stderr, "Options:\n")
+		utils.MustWriteStringTo(os.Stdout, "ddns-go is a library written in golang for managing DNS records of domain names and dynamic IP addresses.\n\n")
+		utils.MustWriteStringTo(os.Stdout, fmt.Sprintf("Usage: %s [Options]\n\n", command))
+		utils.MustWriteStringTo(os.Stdout, "Options:\n")
 		flag.PrintDefaults()
-		fmt.Fprintf(os.Stderr, "\nExamples:\n")
-		fmt.Fprintf(os.Stderr, "  %s -log-level=debug\n", command)
+		utils.MustWriteStringTo(os.Stdout, "\nExamples:\n")
+		utils.MustWriteStringTo(os.Stdout, fmt.Sprintf("  %s --config config.yaml\n", command))
 	}
 }

@@ -4,9 +4,10 @@ import (
 	"io"
 	"os"
 
-	"github.com/guguducken/ddns-go/pkg/errno"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/pkgerrors"
+
+	"github.com/guguducken/ddns-go/pkg/errno"
 )
 
 var (

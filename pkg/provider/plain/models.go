@@ -3,8 +3,9 @@ package plain
 import (
 	"net/http"
 
-	"github.com/guguducken/ddns-go/pkg/utils/requestutils"
 	"gopkg.in/yaml.v3"
+
+	"github.com/guguducken/ddns-go/pkg/utils/requestutils"
 )
 
 type Config struct {

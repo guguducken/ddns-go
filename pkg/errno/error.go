@@ -12,7 +12,7 @@ type Error struct {
 	// message is the information that will be displayed to the user
 	message string
 
-	additionalInfo additionalInfo
+	additionalInfo AdditionalInfo
 }
 
 func (e Error) Error() string {
@@ -33,7 +33,7 @@ func NewError(code, message string) error {
 	}
 }
 
-type additionalInfo map[string]string
+type AdditionalInfo map[string]string
 
 func (e Error) Is(in error) bool {
 	var ne Error
@@ -43,7 +43,7 @@ func (e Error) Is(in error) bool {
 	return false
 }
 
-func GetAdditionalInfo(err error) additionalInfo {
+func GetAdditionalInfo(err error) AdditionalInfo {
 	var ne Error
 	if errors.As(err, &ne) {
 		return ne.additionalInfo
