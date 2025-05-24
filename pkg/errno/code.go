@@ -1,0 +1,23 @@
+package errno
+
+var (
+	ErrRecorderInitFailed   = NewError("ErrRecorderInitFailed", "failed to init recorder")
+	ErrInvalidRecorderType  = NewError("ErrInvalidRecorderType", "invalid recorder type, must be one of: ")
+	ErrFailedDescribeRecord = NewError("ErrFailedDescribeRecord", "failed to describe record")
+	ErrFailedModifyRecord   = NewError("ErrFailedModifyRecord", "failed to modify record")
+	ErrFailedCreateRecord   = NewError("ErrFailedCreateRecord", "failed to create record")
+	ErrFailedDeleteRecord   = NewError("ErrFailedDeleteRecord", "failed to delete record")
+	ErrRecordTypeConflict   = NewError("ErrRecordTypeConflict", "record type conflict, delete the existing record manually first")
+	ErrRequestFailed        = NewError("ErrRequestFailed", "Request failed")
+	ErrRequestMaxTimes      = NewError("ErrRequestMaxTimes", "Request max times")
+	ErrRequestMaxRedirect   = NewError("ErrRequestMaxRedirect", "Request max redirect")
+	ErrRequestRateLimited   = NewError("ErrRequestRateLimited", "Request rate limited")
+	ErrFailedProvideIP      = NewError("ErrFailedProvideIP", "Failed to provide IP")
+	ErrInvalidIPAddress     = NewError("ErrInvalidIPAddress", "Invalid IP address")
+	ErrInvalidProviderType  = NewError("ErrInvalidProviderType", "Invalid provider type, must be one of: ")
+	ErrDomainNotUnique      = NewError("ErrDomainNotUnique", "Domain must be unique")
+	ErrUnknown              = NewError("ErrUnknown", "unknown error")
+	ErrCanNotProvideIP      = NewError("ErrCanNotProvideIP", "can not provide ip")
+	ErrNoConfiguredProvider = NewError("ErrNoConfiguredProvider", "no configured provider")
+	ErrNoConfiguredRecorder = NewError("ErrNoConfiguredRecorder", "no configured recorder")
+)
