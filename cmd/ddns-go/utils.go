@@ -20,3 +20,15 @@ func Usage() func() {
 		utils.MustWriteStringTo(os.Stdout, fmt.Sprintf("  %s --config config.yaml\n", command))
 	}
 }
+
+func PrintFigLet() {
+	figlet := `       __    __
+  ____/ /___/ /___  _____   ____ _____
+ / __  / __  / __ \/ ___/  / __ \/ __ \
+/ /_/ / /_/ / / / (__  )  / /_/ / /_/ /
+\__,_/\__,_/_/ /_/____/   \__, \/____/
+                         /____/
+
+`
+	utils.MustWriteStringTo(os.Stdout, figlet)
+}

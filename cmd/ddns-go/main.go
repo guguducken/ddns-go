@@ -32,6 +32,7 @@ func main() {
 		version.Print()
 		return
 	}
+	PrintFigLet()
 	// load log config and init log util
 	logutil.Init(*opts.LogLevel, nil)
 	// load config file to config.Config
@@ -155,7 +156,8 @@ func startCycle(
 				logutil.Error(err, "failed to apply record")
 			}
 		case <-ctx.Done():
-			exitCtx, _ := context.WithTimeout(context.Background(), exitTimeout)
+			exitCtx, exitCancel := context.WithTimeout(context.Background(), exitTimeout)
+			defer exitCancel()
 			return recorders.Exit(exitCtx)
 		}
 	}
