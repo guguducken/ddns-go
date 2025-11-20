@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"io"
 	"os"
 	"regexp"
@@ -87,4 +88,14 @@ func UnsafeToString(b []byte) string {
 // NOTE: must not modify result []byte
 func UnsafeToByteSlice(s string) []byte {
 	return unsafe.Slice(unsafe.StringData(s), len(s))
+}
+
+func RunWithContext[T any](ctx context.Context, fn func() (T, error)) (T, error) {
+	var result T
+	select {
+	case <-ctx.Done():
+		return result, ctx.Err()
+	default:
+		return fn()
+	}
 }

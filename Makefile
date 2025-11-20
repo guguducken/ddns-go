@@ -15,7 +15,7 @@ VERSION_INFO :=-X '$(GO_MODULE)/pkg/version.GoVersion=$(GO_VERSION)' -X '$(GO_MO
 -X '$(GO_MODULE)/pkg/version.CommitID=$(LAST_COMMIT_ID)' -X '$(GO_MODULE)/pkg/version.BuildTime=$(BUILD_TIME)' \
 -X '$(GO_MODULE)/pkg/version.Version=$(VERSION)'
 
-GOLDFLAGS=-ldflags="$(VERSION_INFO)"
+GOLDFLAGS=-ldflags="s -w -buildid= $(VERSION_INFO)"
 
 .PHONY: config
 config:
@@ -23,7 +23,7 @@ config:
 
 .PHONY: build
 build: config
-	@CGO_ENABLED=0 go build $(GOLDFLAGS) -o $(OUTPUT_PATH)/$(BIN_NAME) ./cmd/ddns-go
+	@CGO_ENABLED=0 go build -trimpath $(GOLDFLAGS) -o $(OUTPUT_PATH)/$(BIN_NAME) ./cmd/ddns-go
 
 .PHONY: clean
 clean:

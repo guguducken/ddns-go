@@ -1,8 +1,9 @@
 package json
 
 const (
-	DefaultIPInfoAPIEndpoint   = "https://4.ident.me/json"
-	DefaultIPInfoV6APIEndpoint = "https://6.ident.me/json"
+	DefaultIPInfoAPIEndpoint   = "https://ipinfo.ip/json"
+	DefaultIPInfoV6APIEndpoint = "https://v6.ipinfo.io/json"
 
-	DefaultJsonPath = "ip"
+	DefaultJsonPath          = "ip"
+	DefaultSuccessStatusCode = 200
 )

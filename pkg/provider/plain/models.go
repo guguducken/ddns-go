@@ -1,8 +1,10 @@
 package plain
 
 import (
+	"fmt"
 	"net/http"
 
+	"github.com/guguducken/ddns-go/pkg/utils/logutil"
 	"gopkg.in/yaml.v3"
 
 	"github.com/guguducken/ddns-go/pkg/utils/requestutils"
@@ -12,6 +14,7 @@ type Config struct {
 	RequestURL        string            `yaml:"request_url"`
 	AdditionalParams  map[string]string `yaml:"additional_params"`
 	AdditionalHeaders map[string]string `yaml:"additional_headers"`
+	SuccessStatusCode int               `yaml:"success_status_code"`
 
 	headers          http.Header
 	targetRequestURL string
@@ -27,6 +30,10 @@ func (config *Config) init(node yaml.Node, isV4 bool) error {
 		} else {
 			config.RequestURL = DefaultIPInfoV6APIEndpoint
 		}
+	}
+	if config.SuccessStatusCode == 0 {
+		logutil.Warn(fmt.Sprintf("success_status_code not set, will use default %d", DefaultSuccessStatusCode))
+		config.SuccessStatusCode = DefaultSuccessStatusCode
 	}
 
 	// internal config

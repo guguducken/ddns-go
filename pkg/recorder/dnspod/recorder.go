@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 
 	dcommon "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
 	dprofile "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
@@ -131,6 +132,7 @@ func (r *Recorder) ApplyValue(ctx context.Context, value string) (err error) {
 			)
 			continue
 		}
+		oldDomain := domain.domain
 		domain.value = value
 		// if the record is already created, check the record type and set value to the new ip, then update the record
 		if domain.id != 0 {
@@ -143,15 +145,29 @@ func (r *Recorder) ApplyValue(ctx context.Context, value string) (err error) {
 					errno.AppendAdditionalMessage("new_record_type", string(recordType)),
 				)
 			}
+			logutil.Info(
+				"the record is exists but the value is different from the new value, will update it",
+				logutil.NewField("domain", domain.domain),
+				logutil.NewField("sub_domain", domain.subDomain),
+				logutil.NewField("value", value),
+				logutil.NewField("old_value", oldDomain),
+			)
 			if err = r.updateRecordValue(ctx, domain); err != nil {
 				logutil.Error(err, "failed to update record value")
 				continue
 			}
 		} else {
+			logutil.Info(
+				"the record is not exists will create it",
+				logutil.NewField("domain", domain.domain),
+				logutil.NewField("sub_domain", domain.subDomain),
+				logutil.NewField("value", value),
+			)
 			// set the record type for the new record
 			domain.recordType = recordType
 			// if the record is not created, create the record
-			id, err := r.createRecord(ctx, domain)
+			var id uint64
+			id, err = r.createRecord(ctx, domain)
 			if err != nil {
 				logutil.Error(err, "failed to create record",
 					logutil.NewField("domain", domain.domain),
@@ -169,6 +185,7 @@ func (r *Recorder) ApplyValue(ctx context.Context, value string) (err error) {
 }
 
 func (r *Recorder) Exit(ctx context.Context) (err error) {
+	deleteCount := 0
 	for _, domain := range r.domains {
 		if domain.id == 0 {
 			logutil.Info("the record is not created, do nothing",
@@ -183,7 +200,11 @@ func (r *Recorder) Exit(ctx context.Context) (err error) {
 				logutil.NewField("sub_domain", domain.subDomain),
 			)
 		}
+		deleteCount++
 	}
+	logutil.Info(
+		"shutting down dnspod recorder finished", logutil.NewField("total_delete", strconv.Itoa(deleteCount)),
+	)
 	return nil
 }
 

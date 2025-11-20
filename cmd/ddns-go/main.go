@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -118,7 +119,6 @@ func startCycle(
 	isV4 bool,
 	exitTimeout time.Duration,
 ) error {
-	ticker := time.NewTicker(time.Duration(checkInterval) * time.Second)
 	if len(cfg.Providers) == 0 {
 		return errno.ErrNoConfiguredProvider
 	}
@@ -129,6 +129,12 @@ func startCycle(
 	providers, recorders := make(provider.Providers, 0, len(cfg.Providers)), make(recorder.Recorders, 0, len(cfg.Recorders))
 	// init providers first
 	for _, p := range cfg.Providers {
+		logutil.Debug(
+			"init provider",
+			logutil.NewField("type", p.Type.String()),
+			logutil.NewField("name", p.Name),
+			logutil.NewField("is_v4", strconv.FormatBool(isV4)),
+		)
 		pp, err := provider.NewProvider(p.Type, p.Config, p.Name, isV4)
 		if err != nil {
 			return err
@@ -138,16 +144,27 @@ func startCycle(
 
 	// init recorders
 	for _, r := range cfg.Recorders {
+		logutil.Debug(
+			"init provider",
+			logutil.NewField("type", r.Type.String()),
+		)
 		rr, err := recorder.NewRecorder(ctx, r.Type, r.Config)
 		if err != nil {
 			return err
 		}
 		recorders = append(recorders, rr)
 	}
+	
+	checkIntervalDuration := time.Duration(checkInterval) * time.Second
+	logutil.Debug("init time ticker", logutil.NewField("check_interval", checkIntervalDuration.String()))
+	ticker := time.NewTicker(checkIntervalDuration)
+	checkRound := 0
 	for {
 		select {
 		case <-ticker.C:
-			ip, err := providers.ProviderIP()
+			logutil.Info("start provide ip and apply value single round", logutil.NewField("round", strconv.Itoa(checkRound)))
+			checkRound++
+			ip, err := providers.ProviderIP(ctx)
 			if err != nil {
 				logutil.Error(err, "failed to provide ip, will skip apply record")
 				continue
@@ -156,9 +173,11 @@ func startCycle(
 				logutil.Error(err, "failed to apply record")
 			}
 		case <-ctx.Done():
-			exitCtx, exitCancel := context.WithTimeout(context.Background(), exitTimeout)
-			defer exitCancel()
-			return recorders.Exit(exitCtx)
+			return func() error {
+				exitCtx, exitCancel := context.WithTimeout(context.Background(), exitTimeout)
+				defer exitCancel()
+				return recorders.Exit(exitCtx)
+			}()
 		}
 	}
 }

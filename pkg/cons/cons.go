@@ -8,6 +8,10 @@ const (
 	RecorderTypeCloudflare RecorderType = "cloudflare"
 )
 
+func (p RecorderType) String() string {
+	return string(p)
+}
+
 type RecordType string
 
 const (

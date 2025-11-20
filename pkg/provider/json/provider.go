@@ -1,6 +1,8 @@
 package json
 
 import (
+	"strconv"
+
 	"github.com/google/uuid"
 	"gopkg.in/yaml.v3"
 
@@ -51,6 +53,13 @@ func (p *Provider) ProviderIP() (string, error) {
 		)
 	}
 	defer requestutils.ReleaseResponse(response)
+
+	if response.StatusCode() != p.config.SuccessStatusCode {
+		return "", errno.OverrideError(
+			errno.ErrFailedProvideIP,
+			errno.AppendAdditionalMessage("InvalidStatusCode", strconv.Itoa(response.StatusCode())),
+		)
+	}
 
 	ip, err := jsonparser.GetString(response.Body(), p.config.splitPath...)
 	if err != nil {

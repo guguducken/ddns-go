@@ -2,9 +2,11 @@ package json
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
+	"github.com/guguducken/ddns-go/pkg/utils/logutil"
 	"gopkg.in/yaml.v3"
 
 	"github.com/guguducken/ddns-go/pkg/utils/requestutils"
@@ -15,6 +17,7 @@ type Config struct {
 	AdditionalParams  map[string]string `yaml:"additional_params"`
 	AdditionalHeaders map[string]string `yaml:"additional_headers"`
 	Path              string            `yaml:"path"`
+	SuccessStatusCode int               `yaml:"success_status_code"`
 
 	splitPath        []string
 	headers          http.Header
@@ -32,9 +35,15 @@ func (config *Config) init(node yaml.Node, isV4 bool) error {
 			config.RequestURL = DefaultIPInfoV6APIEndpoint
 		}
 		config.Path = DefaultJsonPath
+		config.SuccessStatusCode = DefaultSuccessStatusCode
 	}
 	if config.Path == "" {
 		return errors.New("path is required")
+	}
+	
+	if config.SuccessStatusCode == 0 {
+		logutil.Warn(fmt.Sprintf("success_status_code not set, will use default %d", DefaultSuccessStatusCode))
+		config.SuccessStatusCode = DefaultSuccessStatusCode
 	}
 
 	// internal config

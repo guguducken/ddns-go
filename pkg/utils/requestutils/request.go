@@ -2,11 +2,12 @@ package requestutils
 
 import (
 	"net/http"
-	"slices"
+	"strconv"
 	"sync"
 	"time"
 
 	"github.com/guguducken/ddns-go/pkg/errno"
+	"github.com/guguducken/ddns-go/pkg/utils/logutil"
 	"github.com/valyala/fasthttp"
 )
 
@@ -74,12 +75,14 @@ func InjectHttpClient(client *fasthttp.Client) {
 
 func defaultFastHttpClient() *fasthttp.Client {
 	clientInitOnce.Do(func() {
-		defaultHttpClient = &fasthttp.Client{
-			MaxConnsPerHost:     2000,
-			StreamResponseBody:  true,
-			MaxIdleConnDuration: 5 * time.Second,
-			MaxConnWaitTimeout:  5 * time.Second,
-			DialTimeout:         fasthttp.DialDualStackTimeout,
+		if defaultHttpClient == nil {
+			defaultHttpClient = &fasthttp.Client{
+				MaxConnsPerHost:     2000,
+				StreamResponseBody:  true,
+				MaxIdleConnDuration: 5 * time.Second,
+				MaxConnWaitTimeout:  5 * time.Second,
+				DialTimeout:         fasthttp.DialDualStackTimeout,
+			}
 		}
 	})
 
@@ -96,39 +99,27 @@ func Request(method string, url string, headers http.Header, body []byte, option
 	}
 	defer fasthttp.ReleaseRequest(req)
 
-	var resultErr error
-	redirectCount := 0
-	for range o.retryTimes {
-		resp, err := do(req)
+	for t := range o.retryTimes {
+		resp, err := do(req, o.maxRedirect)
 		if err != nil {
-			resultErr = err
+			logutil.Error(err, "do request failed, will retry", logutil.NewField("try_time", strconv.Itoa(t)))
 			if o.preRetryConfig != nil {
 				o.preRetryConfig(req)
 			}
 			time.Sleep(o.retryDelay)
 			continue
 		}
-		// check redirect
-		if checkRedirect(resp.StatusCode()) {
-			redirectCount++
-			if redirectCount > o.maxRedirect {
-				return nil, errno.ErrRequestMaxRedirect
-			}
-			req.SetRequestURIBytes(resp.Header.Peek("Location"))
-			ReleaseResponse(resp)
-			continue
-		}
 		return resp, nil
 	}
-	return nil, errno.OverrideError(errno.ErrRequestMaxTimes, errno.OverrideMessage(resultErr.Error()))
+	return nil, errno.ErrRequestMaxTimes
 }
 
 // do http request
 // if request failed, will return ErrHttpRequest
-func do(req *fasthttp.Request) (*fasthttp.Response, error) {
+func do(req *fasthttp.Request, maxRedirectTimes int) (*fasthttp.Response, error) {
 	// init fast http response
 	resp := fasthttp.AcquireResponse()
-	if err := defaultFastHttpClient().Do(req, resp); err != nil {
+	if err := defaultFastHttpClient().DoRedirects(req, resp, maxRedirectTimes); err != nil {
 		fasthttp.ReleaseResponse(resp)
 		return nil, errno.OverrideError(errno.ErrRequestFailed, errno.OverrideMessage(err.Error()))
 	}
@@ -142,13 +133,4 @@ func deployRequestOptions(options []RequestOption) *RequestConfig {
 	}
 	WithDefaultValue()(cfg)
 	return cfg
-}
-
-func checkRedirect(code int) bool {
-	acceptedRedirectCode := []int{
-		fasthttp.StatusMovedPermanently,
-		fasthttp.StatusTemporaryRedirect,
-		fasthttp.StatusPermanentRedirect,
-	}
-	return slices.Contains(acceptedRedirectCode, code)
 }
