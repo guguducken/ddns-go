@@ -5,7 +5,7 @@ OUTPUT_PATH := $(ROOT_DIR)/bin
 BIN_NAME := ddns-go
 UNAME_S := $(shell uname -s)
 GOPATH := $(shell go env GOPATH)
-GO_VERSION=$(shell go version)
+GO_VERSION=$(shell go version | awk '{print $$3}')
 GO_MODULE=$(shell go list -m)
 BRANCH_NAME=$(shell git rev-parse --abbrev-ref HEAD)
 LAST_COMMIT_ID=$(shell git rev-parse --short HEAD)
@@ -15,7 +15,7 @@ VERSION_INFO :=-X '$(GO_MODULE)/pkg/version.GoVersion=$(GO_VERSION)' -X '$(GO_MO
 -X '$(GO_MODULE)/pkg/version.CommitID=$(LAST_COMMIT_ID)' -X '$(GO_MODULE)/pkg/version.BuildTime=$(BUILD_TIME)' \
 -X '$(GO_MODULE)/pkg/version.Version=$(VERSION)'
 
-GOLDFLAGS=-ldflags="s -w -buildid= $(VERSION_INFO)"
+GOLDFLAGS=-ldflags="-s -w -buildid=$(VERSION)-$(LAST_COMMIT_ID) $(VERSION_INFO)"
 
 .PHONY: config
 config:

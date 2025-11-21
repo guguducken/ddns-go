@@ -14,9 +14,21 @@ before:
     - make config
 
 builds:
-  - env:
+  - builder: go
+    env:
       - CGO_ENABLED=0
-    main: cmd/ddns-go
+    main: ./cmd/ddns-go
+    flags:
+      - -trimpath
+    ldflags:
+      - -s
+      - -w
+      - -buildid={{ .Version }}-{{ .Commit }}
+      - -X {{ .ModulePath }}/pkg/version.GoVersion={{ .Env.GO_VERSION }}
+      - -X {{ .ModulePath }}/pkg/version.BranchName={{ .Branch }}
+      - -X {{ .ModulePath }}/pkg/version.CommitID={{ .Commit }}
+      - -X {{ .ModulePath }}/pkg/version.BuildTime={{.Date}}
+      - -X {{ .ModulePath }}/pkg/version.Version={{ .Version }}
     goos:
       - linux
       - darwin

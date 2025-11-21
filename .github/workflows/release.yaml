@@ -14,6 +14,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Set up Go
+        id: setup-go
         uses: actions/setup-go@v5
         with:
           go-version-file: "go.mod"
@@ -24,4 +25,5 @@ jobs:
           version: '~> v2'
           args: release --clean
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+          GO_VERSION: ${{ steps.setup-go.outputs.go-version }}
