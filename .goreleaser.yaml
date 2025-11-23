@@ -25,7 +25,7 @@ builds:
       - -w
       - -buildid={{ .Version }}-{{ .Commit }}
       - -X {{ .ModulePath }}/pkg/version.GoVersion={{ .Env.GO_VERSION }}
-      - -X {{ .ModulePath }}/pkg/version.BranchName={{ .Branch }}
+      - -X {{ .ModulePath }}/pkg/version.BranchName={{ .Env.BRANCH_NAME }}
       - -X {{ .ModulePath }}/pkg/version.CommitID={{ .Commit }}
       - -X {{ .ModulePath }}/pkg/version.BuildTime={{.Date}}
       - -X {{ .ModulePath }}/pkg/version.Version={{ .Version }}

@@ -18,6 +18,11 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: "go.mod"
+      - name: Identify Tag Branch
+        id: identify
+        run: |
+          branch=$(git for-each-ref --format='%(refname:short)' refs/heads/ --contains ${{ github.ref_name }})
+          echo "branch=${branch}" >> $GITHUB_OUTPUT;
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         if: startsWith(github.ref, 'refs/tags/')
@@ -27,3 +32,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
           GO_VERSION: ${{ steps.setup-go.outputs.go-version }}
+          BRANCH_NAME: ${{ steps.identify.outputs.branch }}
