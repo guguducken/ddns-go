@@ -21,7 +21,14 @@ jobs:
       - name: Identify Tag Branch
         id: identify
         run: |
-          branch=$(git for-each-ref --format='%(refname:short)' refs/heads/ --contains ${{ github.ref_name }})
+          branch=$(git for-each-ref --format='%(refname:short)' refs/remotes/origin/ --contains ${{ github.ref_name }} | head -n 1)
+          if [ -z "$branch" ]; then
+            echo "No branch found for tag ${{ github.ref_name }}"
+            exit 1
+          fi
+          branch=${branch#origin/}
+          echo "branch is $branch";
+          
           echo "branch=${branch}" >> $GITHUB_OUTPUT;
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
