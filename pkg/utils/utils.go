@@ -19,7 +19,7 @@ func MustGetEnv(key string) string {
 		logutil.Fatal(
 			nil,
 			"invalid environment variable name",
-			logutil.Field{Key: "name", Value: key},
+			logutil.Str("name", key),
 		)
 	}
 
@@ -28,7 +28,7 @@ func MustGetEnv(key string) string {
 		logutil.Fatal(
 			nil,
 			"environment variable is not found",
-			logutil.Field{Key: "name", Value: key},
+			logutil.Str("name", key),
 		)
 	}
 	return value

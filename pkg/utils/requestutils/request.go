@@ -2,13 +2,13 @@ package requestutils
 
 import (
 	"net/http"
-	"strconv"
 	"sync"
 	"time"
 
+	"github.com/valyala/fasthttp"
+
 	"github.com/guguducken/ddns-go/pkg/errno"
 	"github.com/guguducken/ddns-go/pkg/utils/logutil"
-	"github.com/valyala/fasthttp"
 )
 
 type RequestConfig struct {
@@ -102,7 +102,7 @@ func Request(method string, url string, headers http.Header, body []byte, option
 	for t := range o.retryTimes {
 		resp, err := do(req, o.maxRedirect)
 		if err != nil {
-			logutil.Error(err, "do request failed, will retry", logutil.NewField("try_time", strconv.Itoa(t)))
+			logutil.Error(err, "do request failed, will retry", logutil.Int("try_time", t))
 			if o.preRetryConfig != nil {
 				o.preRetryConfig(req)
 			}

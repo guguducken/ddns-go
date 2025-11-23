@@ -1,6 +1,8 @@
 package logutil
 
-import "github.com/rs/zerolog"
+import (
+	"github.com/rs/zerolog"
+)
 
 const (
 	DebugLevel = "debug"
@@ -11,9 +13,16 @@ const (
 	FatalLevel = "fatal"
 )
 
+var (
+	skipOneLogger zerolog.Logger
+)
+
+func initSkipOneLogger(writers zerolog.LevelWriter) {
+	skipOneLogger = zerolog.New(writers).With().CallerWithSkipFrameCount(3).Logger()
+}
+
 func GetSkipOneLogger() *zerolog.Logger {
-	logger := zerolog.New(logOutputs).With().CallerWithSkipFrameCount(3).Logger()
-	return &logger
+	return &skipOneLogger
 }
 
 func parseLogLevel(level string) zerolog.Level {

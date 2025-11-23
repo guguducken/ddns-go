@@ -10,10 +10,6 @@ import (
 	"github.com/guguducken/ddns-go/pkg/errno"
 )
 
-var (
-	logOutputs zerolog.LevelWriter
-)
-
 func Init(logLevel string, outputs []io.Writer) {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
@@ -21,13 +17,13 @@ func Init(logLevel string, outputs []io.Writer) {
 	if len(outputs) == 0 {
 		outputs = []io.Writer{os.Stdout}
 	}
-	logOutputs = zerolog.MultiLevelWriter(outputs...)
+	initSkipOneLogger(zerolog.MultiLevelWriter(outputs...))
 }
 
 func Debug(message string, fields ...Field) {
 	event := GetSkipOneLogger().Debug().Timestamp()
 	for _, field := range fields {
-		event.Str(field.Key, field.Value)
+		field(event)
 	}
 	event.Msg(message)
 }
@@ -35,7 +31,7 @@ func Debug(message string, fields ...Field) {
 func Info(message string, fields ...Field) {
 	event := GetSkipOneLogger().Info().Timestamp()
 	for _, field := range fields {
-		event.Str(field.Key, field.Value)
+		field(event)
 	}
 	event.Msg(message)
 }
@@ -43,7 +39,7 @@ func Info(message string, fields ...Field) {
 func Warn(message string, fields ...Field) {
 	event := GetSkipOneLogger().Warn().Timestamp()
 	for _, field := range fields {
-		event.Str(field.Key, field.Value)
+		field(event)
 	}
 	event.Msg(message)
 }
@@ -51,7 +47,7 @@ func Warn(message string, fields ...Field) {
 func Error(err error, message string, fields ...Field) {
 	event := GetSkipOneLogger().Error().Stack().Timestamp()
 	for _, field := range fields {
-		event.Str(field.Key, field.Value)
+		field(event)
 	}
 	AddFieldFromErrorAdditionalInfo(event, err)
 	event.Err(err).Msg(message)
@@ -60,7 +56,7 @@ func Error(err error, message string, fields ...Field) {
 func Panic(err error, message string, fields ...Field) {
 	event := GetSkipOneLogger().Panic().Stack().Timestamp()
 	for _, field := range fields {
-		event.Str(field.Key, field.Value)
+		field(event)
 	}
 	AddFieldFromErrorAdditionalInfo(event, err)
 	event.Err(err).Msg(message)
@@ -69,7 +65,7 @@ func Panic(err error, message string, fields ...Field) {
 func Fatal(err error, message string, fields ...Field) {
 	event := GetSkipOneLogger().Fatal().Stack().Timestamp()
 	for _, field := range fields {
-		event.Str(field.Key, field.Value)
+		field(event)
 	}
 	AddFieldFromErrorAdditionalInfo(event, err)
 	event.Err(err).Msg(message)

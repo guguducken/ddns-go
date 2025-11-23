@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/guguducken/ddns-go/pkg/utils"
 	"gopkg.in/yaml.v3"
+
+	"github.com/guguducken/ddns-go/pkg/utils"
 
 	"github.com/guguducken/ddns-go/pkg/cons"
 	"github.com/guguducken/ddns-go/pkg/errno"
@@ -47,8 +48,8 @@ func (ps Providers) ProviderIP(ctx context.Context) (string, error) {
 			logutil.Error(
 				err,
 				"failed to provide ip",
-				logutil.NewField("provider", p.GetName()),
-				logutil.NewField("type", p.GetType().String()),
+				logutil.Str("provider", p.GetName()),
+				logutil.Str("type", p.GetType().String()),
 			)
 			continue
 		}
