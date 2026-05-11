@@ -21,12 +21,12 @@ type Provider interface {
 	ProviderIP() (string, error)
 }
 
-func NewProvider(t cons.ProviderType, config yaml.Node, name string, isV4 bool) (Provider, error) {
+func NewProvider(t cons.ProviderType, config yaml.Node, name string, v4 bool) (Provider, error) {
 	switch t {
 	case cons.ProviderTypePlain:
-		return plain.NewProvider(config, name, isV4)
+		return plain.NewProvider(config, name, v4)
 	case cons.ProviderTypeJson:
-		return json.NewProvider(config, name, isV4)
+		return json.NewProvider(config, name, v4)
 	default:
 		return nil, errno.OverrideError(
 			errno.ErrInvalidProviderType,

@@ -115,7 +115,7 @@ func startCycle(
 	ctx context.Context,
 	cfg *config.Pairs,
 	checkInterval int,
-	isV4 bool,
+	v4 bool,
 	exitTimeout time.Duration,
 ) error {
 	if len(cfg.Providers) == 0 {
@@ -132,9 +132,9 @@ func startCycle(
 			"init provider",
 			logutil.Str("type", p.Type.String()),
 			logutil.Str("name", p.Name),
-			logutil.Bool("is_v4", isV4),
+			logutil.Bool("is_v4", v4),
 		)
-		pp, err := provider.NewProvider(p.Type, p.Config, p.Name, isV4)
+		pp, err := provider.NewProvider(p.Type, p.Config, p.Name, v4)
 		if err != nil {
 			return err
 		}
