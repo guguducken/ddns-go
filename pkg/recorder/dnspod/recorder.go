@@ -136,6 +136,13 @@ func (r *Recorder) updateDomainDetails(ctx context.Context) (err error) {
 			r.domains[ind].value = *record.Value
 			r.domains[ind].recordType = cons.RecordType(*record.Type)
 		}
+		if r.domains[ind].id == 0 {
+			logutil.Debug(
+				"domain record is not created or deleted, will set id, value,record_type to empty",
+				logutil.Str("domain", r.domains[ind].domain),
+				logutil.Str("sub_domain", r.domains[ind].subDomain),
+			)
+		}
 	}
 	return errors.Join(errs...)
 }
