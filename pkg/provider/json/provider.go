@@ -20,13 +20,13 @@ type Provider struct {
 	name   string
 }
 
-func NewProvider(config yaml.Node, name string, isV4 bool) (*Provider, error) {
+func NewProvider(config yaml.Node, name string, v4 bool) (*Provider, error) {
 	p := &Provider{
 		name:   name,
 		config: &Config{},
 	}
 
-	if err := p.config.init(config, isV4); err != nil {
+	if err := p.config.init(config, v4); err != nil {
 		return nil, err
 	}
 	if len(p.name) == 0 {

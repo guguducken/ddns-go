@@ -122,65 +122,15 @@ func (r *Recorder) ApplyValue(ctx context.Context, value string) (err error) {
 		return err
 	}
 
-	for ind, domain := range r.domains {
-		if domain.value == value {
-			logutil.Info("the record value is the same as the new ip, do nothing",
-				logutil.Str("domain", domain.domain),
-				logutil.Str("sub_domain", domain.subDomain),
-				logutil.Str("value", value),
-			)
-			continue
+	errs := make([]error, 0, 2)
+
+	for ind, _ := range r.domains {
+		if err := r.updateOrCreateDomainValue(ctx, &r.domains[ind], recordType, value); err != nil {
+			logutil.Error(err, "failed to update or create domain record")
+			errs = append(errs, err)
 		}
-		oldDomain := domain.domain
-		domain.value = value
-		// if the record is already created, check the record type and set value to the new ip, then update the record
-		if domain.id != 0 {
-			if domain.recordType != recordType {
-				return errno.OverrideError(
-					errno.ErrRecordTypeConflict,
-					errno.AppendAdditionalMessage("domain", domain.domain),
-					errno.AppendAdditionalMessage("sub_domain", domain.subDomain),
-					errno.AppendAdditionalMessage("record_type", string(domain.recordType)),
-					errno.AppendAdditionalMessage("new_record_type", string(recordType)),
-				)
-			}
-			logutil.Info(
-				"the record is exists but the value is different from the new value, will update it",
-				logutil.Str("domain", domain.domain),
-				logutil.Str("sub_domain", domain.subDomain),
-				logutil.Str("value", value),
-				logutil.Str("old_value", oldDomain),
-			)
-			if err = r.updateRecordValue(ctx, domain); err != nil {
-				logutil.Error(err, "failed to update record value")
-				continue
-			}
-		} else {
-			logutil.Info(
-				"the record is not exists will create it",
-				logutil.Str("domain", domain.domain),
-				logutil.Str("sub_domain", domain.subDomain),
-				logutil.Str("value", value),
-			)
-			// set the record type for the new record
-			domain.recordType = recordType
-			// if the record is not created, create the record
-			var id uint64
-			id, err = r.createRecord(ctx, domain)
-			if err != nil {
-				logutil.Error(err, "failed to create record",
-					logutil.Str("domain", domain.domain),
-					logutil.Str("sub_domain", domain.subDomain),
-					logutil.Str("value", value),
-				)
-				continue
-			}
-			domain.id = id
-		}
-		// update the record to the domains
-		r.domains[ind] = domain
 	}
-	return nil
+	return errors.Join(errs...)
 }
 
 func (r *Recorder) Exit(ctx context.Context) (err error) {
@@ -204,6 +154,85 @@ func (r *Recorder) Exit(ctx context.Context) (err error) {
 	logutil.Info(
 		"shutting down dnspod recorder finished", logutil.Int("total_delete", deleteCount),
 	)
+	return nil
+}
+
+func (r *Recorder) updateOrCreateDomainValue(
+	ctx context.Context,
+	domain *domainDetail,
+	recordType cons.RecordType,
+	value string,
+) (err error) {
+	if domain.value == value {
+		logutil.Info("the record value is the same as the new ip, do nothing",
+			logutil.Str("domain", domain.domain),
+			logutil.Str("sub_domain", domain.subDomain),
+			logutil.Str("value", value),
+		)
+		return
+	}
+	oldDomain := domain.Copy()
+	domain.value = value
+	defer func() {
+		if err != nil {
+			logutil.Warn("update or create domain record failed, will rollback domain to old value")
+			*domain = oldDomain
+		}
+	}()
+	// if the record is already created, check the record type and set value to the new ip, then update the record
+	if domain.id != 0 {
+		if domain.recordType != recordType {
+			return errno.OverrideError(
+				errno.ErrRecordTypeConflict,
+				errno.AppendAdditionalMessage("domain", domain.domain),
+				errno.AppendAdditionalMessage("sub_domain", domain.subDomain),
+				errno.AppendAdditionalMessage("record_type", string(domain.recordType)),
+				errno.AppendAdditionalMessage("new_record_type", string(recordType)),
+			)
+		}
+		logutil.Info(
+			"the record is exists but the value is different from the new value, will update it",
+			logutil.Str("domain", domain.domain),
+			logutil.Str("sub_domain", domain.subDomain),
+			logutil.Str("value", value),
+			logutil.Str("old_value", oldDomain.value),
+		)
+		if err = r.updateRecordValue(ctx, *domain); err != nil {
+			err = errno.OverrideError(
+				err,
+				errno.AppendAdditionalMessage("step_message", "failed to update record"),
+				errno.AppendAdditionalMessage("domain", domain.domain),
+				errno.AppendAdditionalMessage("sub_domain", domain.subDomain),
+				errno.AppendAdditionalMessage("value", value),
+				errno.AppendAdditionalMessage("old_value", oldDomain.value),
+			)
+			return
+		}
+	} else {
+		logutil.Info(
+			"the record is not exists will create it",
+			logutil.Str("domain", domain.domain),
+			logutil.Str("sub_domain", domain.subDomain),
+			logutil.Str("value", value),
+		)
+		// set the record type for the new record
+		domain.recordType = recordType
+		// if the record is not created, create the record
+		var id uint64
+		id, err = r.createRecord(ctx, *domain)
+		if err != nil {
+			err = errno.OverrideError(
+				err,
+				errno.AppendAdditionalMessage("step_message", "failed to create record"),
+				errno.AppendAdditionalMessage("domain", domain.domain),
+				errno.AppendAdditionalMessage("sub_domain", domain.subDomain),
+				errno.AppendAdditionalMessage("value", value),
+				errno.AppendAdditionalMessage("record_type", string(recordType)),
+			)
+			return
+		}
+		domain.id = id
+	}
 	return nil
 }
 

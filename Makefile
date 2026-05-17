@@ -2,6 +2,7 @@ default: build
 
 ROOT_DIR = $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 OUTPUT_PATH := $(ROOT_DIR)/bin
+DIST_PATH := $(ROOT_DIR)/dist
 BIN_NAME := ddns-go
 UNAME_S := $(shell uname -s)
 GOPATH := $(shell go env GOPATH)
@@ -27,7 +28,7 @@ build: config
 
 .PHONY: clean
 clean:
-	@rm -rf $(OUTPUT_PATH)
+	@rm -rf $(OUTPUT_PATH) $(DIST_PATH)
 
 .PHONY: image
 image:
