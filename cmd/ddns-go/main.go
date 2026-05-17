@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"math"
 	"os"
 	"os/signal"
 	"syscall"
@@ -163,6 +164,9 @@ func startCycle(
 		case <-ticker.C:
 			logutil.Info("start provide ip and apply value single round", logutil.Int("round", checkRound))
 			checkRound++
+			if checkRound > math.MaxInt {
+				checkRound = 0
+			}
 			ip, err := providers.ProviderIP(ctx)
 			if err != nil {
 				logutil.Error(err, "failed to provide ip, will skip apply record")
