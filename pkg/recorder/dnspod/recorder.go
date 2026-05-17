@@ -87,6 +87,10 @@ func (r *Recorder) initClient() (err error) {
 func (r *Recorder) initDomainDetails() (err error) {
 	for _, domain := range r.config.Domains {
 		for _, subDomain := range domain.SubDomains {
+			logutil.Debug("init domain details",
+				logutil.Str("domain", domain.Domain),
+				logutil.Str("sub_domain", subDomain),
+			)
 			detail := domainDetail{
 				domain:     domain.Domain,
 				subDomain:  subDomain,
@@ -143,6 +147,11 @@ func (r *Recorder) ApplyValue(ctx context.Context, value string) (err error) {
 	}
 
 	if !r.updateAllSuccess || r.count%r.config.TTL == 0 {
+		logutil.Debug(
+			"update domain details",
+			logutil.Bool("update_all_success", r.updateAllSuccess),
+			logutil.Int("count", int(r.count)),
+		)
 		if err = r.updateDomainDetails(ctx); err != nil {
 			return err
 		}
