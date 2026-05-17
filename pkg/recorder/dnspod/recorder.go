@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 
 	dcommon "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
 	dprofile "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
@@ -18,6 +19,7 @@ import (
 )
 
 type Recorder struct {
+	sync.Mutex
 	config *Config
 
 	dnsPodClient *dsdk.Client
@@ -85,6 +87,8 @@ func (r *Recorder) initClient() (err error) {
 }
 
 func (r *Recorder) initDomainDetails() (err error) {
+	r.Lock()
+	defer r.Unlock()
 	for _, domain := range r.config.Domains {
 		for _, subDomain := range domain.SubDomains {
 			logutil.Debug("init domain details",
@@ -114,6 +118,8 @@ func (r *Recorder) initDomainDetails() (err error) {
 }
 
 func (r *Recorder) updateDomainDetails(ctx context.Context) (err error) {
+	r.Lock()
+	defer r.Unlock()
 	errs := make([]error, 0, len(r.domains))
 	for ind, _ := range r.domains {
 		record, err := r.describeRecord(ctx, r.domains[ind].domain, r.domains[ind].subDomain)
@@ -173,6 +179,9 @@ func (r *Recorder) ApplyValue(ctx context.Context, value string) (err error) {
 
 	errs := make([]error, 0, 2)
 
+	r.Lock()
+	defer r.Unlock()
+
 	for ind, _ := range r.domains {
 		if err := r.updateOrCreateDomainValue(ctx, &r.domains[ind], recordType, value); err != nil {
 			logutil.Error(err, "failed to update or create domain record")
@@ -183,6 +192,8 @@ func (r *Recorder) ApplyValue(ctx context.Context, value string) (err error) {
 }
 
 func (r *Recorder) Exit(ctx context.Context) (err error) {
+	r.Lock()
+	defer r.Unlock()
 	deleteCount := 0
 	for _, domain := range r.domains {
 		if domain.id == 0 {
