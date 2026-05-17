@@ -12,6 +12,7 @@ const (
 )
 
 type Config struct {
+	TTL               int64    `yaml:"ttl"`
 	DnsPodAPIEndpoint string   `yaml:"dnspod_api_endpoint"`
 	AccessKey         string   `yaml:"access_key"`
 	SecretKey         string   `yaml:"secret_key"`
