@@ -203,6 +203,11 @@ func (r *Recorder) Exit(ctx context.Context) (err error) {
 			)
 			continue
 		}
+		logutil.Debug("delete domain record when exit",
+			logutil.Int("id", int(domain.id)),
+			logutil.Str("domain", domain.domain),
+			logutil.Str("sub_domain", domain.subDomain),
+		)
 		if err = r.deleteRecord(ctx, domain); err != nil {
 			logutil.Error(err, "failed to delete record",
 				logutil.Str("domain", domain.domain),
@@ -316,6 +321,7 @@ func (r *Recorder) describeRecord(
 	request.SubDomain = dcommon.StringPtr(subDomain)
 	// set the limit to 1
 	request.Limit = dcommon.Uint64Ptr(1)
+	request.IsExactSubDomain = dcommon.BoolPtr(true)
 
 	response, err := r.dnsPodClient.DescribeRecordFilterList(request)
 	if err != nil {
