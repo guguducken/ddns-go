@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/guguducken/ddns-go/pkg/utils"
+	"github.com/guguducken/ddns-go/pkg/version"
 )
 
 func Usage() func() {
@@ -31,4 +32,5 @@ func PrintFigLet() {
 
 `
 	utils.MustWriteStringTo(os.Stdout, figlet)
+	utils.MustWriteStringTo(os.Stdout, "version info: \n"+version.GenVersionMessage()+"\n\n")
 }
