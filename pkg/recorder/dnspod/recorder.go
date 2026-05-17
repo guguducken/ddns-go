@@ -127,6 +127,10 @@ func (r *Recorder) updateDomainDetails(ctx context.Context) (err error) {
 			errs = append(errs, err)
 			continue
 		}
+		// set default to empty, if this record is not deleted, will fill it next
+		r.domains[ind].id = 0
+		r.domains[ind].value = ""
+		r.domains[ind].recordType = ""
 		if record != nil {
 			r.domains[ind].id = *record.RecordId
 			r.domains[ind].value = *record.Value
