@@ -23,13 +23,19 @@ type Recorder struct {
 	dnsPodClient *dsdk.Client
 	credential   *dcommon.Credential
 
-	domains []domainDetail
+	count            int64
+	domains          []domainDetail
+	updateAllSuccess bool
 }
 
 func NewRecorder(ctx context.Context, config yaml.Node) (*Recorder, error) {
 	r := &Recorder{
-		config:  &Config{},
-		domains: make([]domainDetail, 0, 10),
+		config: &Config{
+			TTL: 10,
+		},
+		domains:          make([]domainDetail, 0, 10),
+		count:            0,
+		updateAllSuccess: false,
 	}
 
 	if err := r.config.Init(config); err != nil {
@@ -46,7 +52,7 @@ func NewRecorder(ctx context.Context, config yaml.Node) (*Recorder, error) {
 		)
 	}
 
-	if err := r.initDomainDetails(ctx); err != nil {
+	if err := r.initDomainDetails(); err != nil {
 		return nil, errno.OverrideError(
 			err,
 			errno.AppendAdditionalMessage("phase", "init dnspod domain details"),
@@ -63,9 +69,9 @@ func (r *Recorder) initClient() (err error) {
 	)
 
 	cpf := dprofile.NewClientProfile()
-	cpf.NetworkFailureMaxRetries = 3
+	cpf.NetworkFailureMaxRetries = 5
 	cpf.NetworkFailureRetryDuration = dprofile.ExponentialBackoff
-	cpf.RateLimitExceededMaxRetries = 3
+	cpf.RateLimitExceededMaxRetries = 5
 	cpf.RateLimitExceededRetryDuration = dprofile.ExponentialBackoff
 
 	cpf.HttpProfile.Endpoint = r.config.DnsPodAPIEndpoint
@@ -78,13 +84,13 @@ func (r *Recorder) initClient() (err error) {
 	return err
 }
 
-func (r *Recorder) initDomainDetails(ctx context.Context) (err error) {
+func (r *Recorder) initDomainDetails() (err error) {
 	for _, domain := range r.config.Domains {
 		for _, subDomain := range domain.SubDomains {
-			record, err := r.describeRecord(ctx, domain.Domain, subDomain)
-			if err != nil {
-				return err
-			}
+			logutil.Debug("init domain details",
+				logutil.Str("domain", domain.Domain),
+				logutil.Str("sub_domain", subDomain),
+			)
 			detail := domainDetail{
 				domain:     domain.Domain,
 				subDomain:  subDomain,
@@ -93,11 +99,6 @@ func (r *Recorder) initDomainDetails(ctx context.Context) (err error) {
 				weight:     domain.Weight,
 				status:     domain.Status,
 				remark:     domain.Remark,
-			}
-			if record != nil {
-				detail.id = *record.RecordId
-				detail.value = *record.Value
-				detail.recordType = cons.RecordType(*record.Type)
 			}
 			if !utils.CheckUniqueDomain(fmt.Sprintf("%s.%s", detail.subDomain, detail.domain)) {
 				return errno.OverrideError(
@@ -112,6 +113,29 @@ func (r *Recorder) initDomainDetails(ctx context.Context) (err error) {
 	return nil
 }
 
+func (r *Recorder) updateDomainDetails(ctx context.Context) (err error) {
+	errs := make([]error, 0, len(r.domains))
+	for ind, _ := range r.domains {
+		record, err := r.describeRecord(ctx, r.domains[ind].domain, r.domains[ind].subDomain)
+		if err != nil {
+			logutil.Error(
+				err,
+				"describe record for update domain detail failed, will continue and combine error",
+				logutil.Str("domain", r.domains[ind].domain),
+				logutil.Str("sub_domain", r.domains[ind].subDomain),
+			)
+			errs = append(errs, err)
+			continue
+		}
+		if record != nil {
+			r.domains[ind].id = *record.RecordId
+			r.domains[ind].value = *record.Value
+			r.domains[ind].recordType = cons.RecordType(*record.Type)
+		}
+	}
+	return errors.Join(errs...)
+}
+
 func (r *Recorder) GetType() cons.RecorderType {
 	return cons.RecorderTypeDNSPod
 }
@@ -121,6 +145,20 @@ func (r *Recorder) ApplyValue(ctx context.Context, value string) (err error) {
 	if err != nil {
 		return err
 	}
+
+	if !r.updateAllSuccess || r.count%r.config.TTL == 0 {
+		logutil.Debug(
+			"update domain details",
+			logutil.Bool("update_all_success", r.updateAllSuccess),
+			logutil.Int("count", int(r.count)),
+		)
+		if err = r.updateDomainDetails(ctx); err != nil {
+			return err
+		}
+		r.count = 0
+		r.updateAllSuccess = true
+	}
+	r.count++
 
 	errs := make([]error, 0, 2)
 
@@ -171,31 +209,36 @@ func (r *Recorder) updateOrCreateDomainValue(
 		)
 		return
 	}
-	oldDomain := domain.Copy()
-	domain.value = value
+
+	oldValue := domain.value
+	oldRecordType := domain.recordType
 	defer func() {
 		if err != nil {
 			logutil.Warn("update or create domain record failed, will rollback domain to old value")
-			*domain = oldDomain
+			domain.value = oldValue
+			domain.recordType = oldRecordType
 		}
 	}()
+
+	domain.value = value
 	// if the record is already created, check the record type and set value to the new ip, then update the record
 	if domain.id != 0 {
 		if domain.recordType != recordType {
-			return errno.OverrideError(
+			err = errno.OverrideError(
 				errno.ErrRecordTypeConflict,
 				errno.AppendAdditionalMessage("domain", domain.domain),
 				errno.AppendAdditionalMessage("sub_domain", domain.subDomain),
 				errno.AppendAdditionalMessage("record_type", string(domain.recordType)),
 				errno.AppendAdditionalMessage("new_record_type", string(recordType)),
 			)
+			return
 		}
 		logutil.Info(
 			"the record is exists but the value is different from the new value, will update it",
 			logutil.Str("domain", domain.domain),
 			logutil.Str("sub_domain", domain.subDomain),
 			logutil.Str("value", value),
-			logutil.Str("old_value", oldDomain.value),
+			logutil.Str("old_value", oldValue),
 		)
 		if err = r.updateRecordValue(ctx, *domain); err != nil {
 			err = errno.OverrideError(
@@ -204,36 +247,37 @@ func (r *Recorder) updateOrCreateDomainValue(
 				errno.AppendAdditionalMessage("domain", domain.domain),
 				errno.AppendAdditionalMessage("sub_domain", domain.subDomain),
 				errno.AppendAdditionalMessage("value", value),
-				errno.AppendAdditionalMessage("old_value", oldDomain.value),
+				errno.AppendAdditionalMessage("old_value", oldValue),
 			)
 			return
 		}
-	} else {
-		logutil.Info(
-			"the record is not exists will create it",
-			logutil.Str("domain", domain.domain),
-			logutil.Str("sub_domain", domain.subDomain),
-			logutil.Str("value", value),
-		)
-		// set the record type for the new record
-		domain.recordType = recordType
-		// if the record is not created, create the record
-		var id uint64
-		id, err = r.createRecord(ctx, *domain)
-		if err != nil {
-			err = errno.OverrideError(
-				err,
-				errno.AppendAdditionalMessage("step_message", "failed to create record"),
-				errno.AppendAdditionalMessage("domain", domain.domain),
-				errno.AppendAdditionalMessage("sub_domain", domain.subDomain),
-				errno.AppendAdditionalMessage("value", value),
-				errno.AppendAdditionalMessage("record_type", string(recordType)),
-			)
-			return
-		}
-		domain.id = id
+		return
 	}
-	return nil
+
+	logutil.Info(
+		"the record is not exists will create it",
+		logutil.Str("domain", domain.domain),
+		logutil.Str("sub_domain", domain.subDomain),
+		logutil.Str("value", value),
+	)
+	// set the record type for the new record
+	domain.recordType = recordType
+	// if the record is not created, create the record
+	var id uint64
+	id, err = r.createRecord(ctx, *domain)
+	if err != nil {
+		err = errno.OverrideError(
+			err,
+			errno.AppendAdditionalMessage("step_message", "failed to create record"),
+			errno.AppendAdditionalMessage("domain", domain.domain),
+			errno.AppendAdditionalMessage("sub_domain", domain.subDomain),
+			errno.AppendAdditionalMessage("value", value),
+			errno.AppendAdditionalMessage("record_type", string(recordType)),
+		)
+		return
+	}
+	domain.id = id
+	return
 }
 
 func (r *Recorder) describeRecord(

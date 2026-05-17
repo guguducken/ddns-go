@@ -49,7 +49,7 @@ func main() {
 	start(ctx, cfg, finishedChan, ExitTimeOut)
 
 	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGINT)
+	signal.Notify(signalChan, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT)
 	sig := <-signalChan
 	logutil.Info(
 		fmt.Sprintf("receive system signal, ddns-go will exit after clean with timeout %d seconds", *opts.ExitTimeOut),
