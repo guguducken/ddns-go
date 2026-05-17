@@ -207,6 +207,7 @@ func (r *Recorder) Exit(ctx context.Context) (err error) {
 			logutil.Error(err, "failed to delete record",
 				logutil.Str("domain", domain.domain),
 				logutil.Str("sub_domain", domain.subDomain),
+				logutil.Int("id", int(domain.id)),
 			)
 		}
 		deleteCount++
